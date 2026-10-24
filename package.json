@@ -1,0 +1,56 @@
+{
+  "name": "elpima-api",
+  "version": "1.0.0",
+  "description": "Production API for Elpima Surgicals Limited — Surgical Equipment Catalog & WhatsApp Quote Platform",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "build": "prisma generate",
+    "postinstall": "prisma generate",
+    "dev": "node --watch server.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "surgical",
+    "medical-equipment",
+    "catalog",
+    "quote-engine",
+    "whatsapp",
+    "b2b"
+  ],
+  "author": "Elpima Surgicals Limited",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "@prisma/client": "^6.4.1",
+    "@supabase/supabase-js": "^2.118.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "hpp": "^0.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.5.0",
+    "nanoid": "^5.0.9",
+    "pdfkit": "^0.20.2",
+    "prisma": "^6.4.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "winston": "^3.17.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0",
+    "vitest": "^3.0.7"
+  }
+}

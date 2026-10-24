@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: elpima-api
+    env: node
+    plan: starter
+    region: frankfurt
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 3d
+      - key: DEFAULT_WHATSAPP_NUMBER
+        value: "2348118941799"
+      - key: COMPANY_NAME
+        value: "Elpima Surgicals Limited"
+      - key: COMPANY_EMAIL
+        value: info@elpimasurgicals.com
+      - key: COMPANY_PHONE
+        value: "+2348118941799"
+      - key: COMPANY_ADDRESS
+        value: "Kaduna, Nigeria"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      - key: SPB_STORAGE_ACCESS_KEY_ID
+        sync: false
+      - key: SPB_STORAGE_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_ENDPOINT
+        sync: false
+      - key: SUPABASE_STORAGE_REGION
+        value: eu-central-1

@@ -1,0 +1,231 @@
+// ==========================================
+// Elpima Surgicals Limited — Database Schema
+// Surgical Equipment Catalog & WhatsApp Quote Platform
+// ==========================================
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ------------------------------------------
+// ENUMS
+// ------------------------------------------
+
+enum Role {
+  SUPER_ADMIN
+  SUPERVISING_MANAGER
+}
+
+enum QuoteStatus {
+  NEW
+  CONTACTED
+  QUOTED
+  FULFILLED
+  CANCELLED
+}
+
+enum Priority {
+  STANDARD
+  URGENT
+}
+
+// ------------------------------------------
+// USERS & ACTORS
+// ------------------------------------------
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  fullName     String
+  role         Role          @default(SUPERVISING_MANAGER)
+  phone        String?
+  isActive     Boolean       @default(true)
+  lastLoginAt  DateTime?
+
+  assignedQuotes QuoteInquiry[]
+  auditLogs      AuditLog[]
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([role, isActive])
+  @@map("users")
+}
+
+// ------------------------------------------
+// CATEGORIES & SURGICAL SPECIALTIES
+// ------------------------------------------
+
+model Category {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  slug         String    @unique
+  description  String?
+  imageUrl     String?
+  icon         String?
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+
+  products     Product[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([slug, isActive])
+  @@map("categories")
+}
+
+model Specialty {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  imageUrl    String?
+
+  products    Product[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@map("specialties")
+}
+
+// ------------------------------------------
+// PRODUCTS & SURGICAL CATALOG
+// ------------------------------------------
+
+model Product {
+  id                String             @id @default(uuid())
+  name              String
+  slug              String             @unique
+  sku               String?            @unique
+  categoryId        String
+  category          Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  specialtyId       String?
+  specialty         Specialty?         @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+
+  shortDescription  String?
+  description       String?
+  specifications    Json?              // Structured specs e.g. {"Material": "Titanium", "Sterility": "Autoclavable"}
+  compliance        String[]           // e.g. ["ISO 13485", "CE Mark", "NAFDAC"]
+  images            String[]           // High-resolution image URLs
+  inStock           Boolean            @default(true)
+  leadTime          String?            // e.g. "Available Immediately", "2-3 business days"
+  minOrderQuantity  Int                @default(1)
+  isFeatured        Boolean            @default(false)
+  isActive          Boolean            @default(true)
+  viewCount         Int                @default(0)
+
+  quoteInquiryItems QuoteInquiryItem[]
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([categoryId, isActive])
+  @@index([specialtyId, isActive])
+  @@index([isFeatured, isActive])
+  @@index([slug])
+  @@map("products")
+}
+
+// ------------------------------------------
+// QUOTES & WHATSAPP INQUIRIES
+// ------------------------------------------
+
+model QuoteInquiry {
+  id              String             @id @default(uuid())
+  reference       String             @unique // e.g. "ELP-202610-A1B2"
+  customerName    String
+  customerPhone   String             // WhatsApp contact number
+  customerEmail   String?
+  hospitalClinic  String?            // Hospital, Clinic or Practice Name
+  location        String?            // City / State (e.g., Abuja, Lagos)
+  status          QuoteStatus        @default(NEW)
+  priority        Priority           @default(STANDARD)
+  customerNotes   String?
+  adminNotes      String?
+  whatsappLink    String?
+
+  assignedToId    String?
+  assignedTo      User?              @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  items           QuoteInquiryItem[]
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([status, createdAt])
+  @@index([customerPhone])
+  @@index([reference])
+  @@map("quote_inquiries")
+}
+
+model QuoteInquiryItem {
+  id                 String       @id @default(uuid())
+  quoteInquiryId     String
+  quoteInquiry       QuoteInquiry @relation(fields: [quoteInquiryId], references: [id], onDelete: Cascade)
+  productId          String
+  product            Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  productName        String       // Point-in-time snapshot
+  productSku         String?      // Point-in-time snapshot
+  quantity           Int          @default(1)
+  customRequirement  String?
+
+  createdAt          DateTime     @default(now())
+
+  @@index([quoteInquiryId])
+  @@index([productId])
+  @@map("quote_inquiry_items")
+}
+
+// ------------------------------------------
+// AUDIT LOGS
+// ------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorRole  String?
+  action     String   // e.g. "CREATE_PRODUCT", "UPDATE_QUOTE_STATUS"
+  entityType String   // "product", "quote", "category", "user"
+  entityId   String
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ------------------------------------------
+// STORE SETTINGS & CONTACT
+// ------------------------------------------
+
+model StoreSetting {
+  id               String   @id @default("default")
+  whatsappNumber   String   @default("2348000000000")
+  companyName      String   @default("Elpima Surgicals Limited")
+  companyEmail     String?
+  companyPhone     String?
+  companyAddress   String?
+  quoteDisclaimer  String?
+
+  updatedAt        DateTime @updatedAt
+
+  @@map("store_settings")
+}

@@ -1,0 +1,239 @@
+import bcrypt from "bcryptjs";
+import { prisma } from "../../config/prisma.js";
+import { AppError } from "../../utils/AppError.js";
+import { ROLES } from "../../constants/roles.js";
+
+export async function listManagers() {
+  return prisma.user.findMany({
+    where: { role: ROLES.SUPERVISING_MANAGER },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      lastLoginAt: true,
+      createdAt: true,
+      _count: {
+        select: { assignedQuotes: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function createManager(input, actor) {
+  const existing = await prisma.user.findUnique({
+    where: { email: input.email },
+  });
+
+  if (existing) {
+    throw new AppError(409, "A user with that email already exists", "conflict");
+  }
+
+  const passwordHash = await bcrypt.hash(input.password, 12);
+
+  const manager = await prisma.user.create({
+    data: {
+      fullName: input.fullName,
+      email: input.email,
+      phone: input.phone || null,
+      passwordHash,
+      role: ROLES.SUPERVISING_MANAGER,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+    },
+  });
+
+  // Audit log
+  await prisma.auditLog.create({
+    data: {
+      actorId: actor.id,
+      actorRole: actor.role,
+      action: "CREATE_MANAGER",
+      entityType: "user",
+      entityId: manager.id,
+      metadata: { fullName: manager.fullName, email: manager.email },
+    },
+  });
+
+  return manager;
+}
+
+export async function updateManagerStatus(id, { isActive }, actor) {
+  const manager = await prisma.user.findUnique({
+    where: { id },
+  });
+
+  if (!manager) {
+    throw new AppError(404, "User not found", "user_not_found");
+  }
+
+  if (manager.role === ROLES.SUPER_ADMIN && !isActive) {
+    throw new AppError(400, "Super-Admin cannot be deactivated", "bad_request");
+  }
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: { isActive },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+      isActive: true,
+    },
+  });
+
+  // Audit log
+  await prisma.auditLog.create({
+    data: {
+      actorId: actor.id,
+      actorRole: actor.role,
+      action: isActive ? "ACTIVATE_USER" : "DEACTIVATE_USER",
+      entityType: "user",
+      entityId: updated.id,
+      metadata: { isActive },
+    },
+  });
+
+  return updated;
+}
+
+export async function getManagerById(id) {
+  const manager = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      lastLoginAt: true,
+      createdAt: true,
+      assignedQuotes: {
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          reference: true,
+          customerName: true,
+          hospitalName: true,
+          status: true,
+          priority: true,
+          createdAt: true,
+        },
+      },
+      _count: {
+        select: { assignedQuotes: true },
+      },
+    },
+  });
+
+  if (!manager) {
+    throw new AppError(404, "Supervising Manager not found", "user_not_found");
+  }
+
+  return manager;
+}
+
+export async function updateManager(id, input, actor, clientInfo = {}) {
+  const existing = await prisma.user.findUnique({
+    where: { id },
+  });
+
+  if (!existing) {
+    throw new AppError(404, "Supervising Manager not found", "user_not_found");
+  }
+
+  if (input.email && input.email !== existing.email) {
+    const emailConflict = await prisma.user.findUnique({
+      where: { email: input.email },
+    });
+    if (emailConflict) {
+      throw new AppError(409, "Email address is already taken by another account", "conflict");
+    }
+  }
+
+  let passwordHash;
+  if (input.password) {
+    passwordHash = await bcrypt.hash(input.password, 12);
+  }
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: {
+      ...(input.fullName ? { fullName: input.fullName } : {}),
+      ...(input.email ? { email: input.email } : {}),
+      ...(input.phone !== undefined ? { phone: input.phone } : {}),
+      ...(passwordHash ? { passwordHash } : {}),
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      updatedAt: true,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: actor.id,
+      actorRole: actor.role,
+      action: "UPDATE_MANAGER",
+      entityType: "user",
+      entityId: id,
+      metadata: { updatedFields: Object.keys(input) },
+      ipAddress: clientInfo.ip || null,
+      userAgent: clientInfo.userAgent || null,
+    },
+  });
+
+  return updated;
+}
+
+export async function deleteManager(id, actor, clientInfo = {}) {
+  const manager = await prisma.user.findUnique({
+    where: { id },
+  });
+
+  if (!manager) {
+    throw new AppError(404, "Supervising Manager not found", "user_not_found");
+  }
+
+  if (manager.role === ROLES.SUPER_ADMIN) {
+    throw new AppError(400, "Super-Admin accounts cannot be deleted", "bad_request");
+  }
+
+  await prisma.user.delete({
+    where: { id },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: actor.id,
+      actorRole: actor.role,
+      action: "DELETE_MANAGER",
+      entityType: "user",
+      entityId: id,
+      metadata: { fullName: manager.fullName, email: manager.email },
+      ipAddress: clientInfo.ip || null,
+      userAgent: clientInfo.userAgent || null,
+    },
+  });
+
+  return { message: "Supervising Manager deleted successfully" };
+}
