@@ -1,0 +1,528 @@
+{
+  "info": {
+    "name": "Elpima Surgicals API",
+    "_postman_id": "elpima-surgicals-api-v1",
+    "description": "Production REST API for Elpima Surgicals Limited — Surgical Equipment Catalog & WhatsApp RFQ Quotation Platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Public system liveness and uptime check."
+      }
+    },
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login (Super-Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('token', json.data.token);",
+                  "    console.log('JWT Token saved to collection variable: token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@elpimasurgicals.com\",\n  \"password\": \"AdminPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Authenticates and automatically saves JWT to {{token}} collection variable."
+          }
+        },
+        {
+          "name": "Get Current Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Super Admin Updated\",\n  \"phone\": \"+2348118941799\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"AdminPassword123!\",\n  \"newPassword\": \"NewAdminPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Products Catalog",
+      "item": [
+        {
+          "name": "List Products (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products?page=1&limit=20&search=&inStock=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "search", "value": "" },
+                { "key": "inStock", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/laparoscopic-trocar-10mm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products", "laparoscopic-trocar-10mm"]
+            }
+          }
+        },
+        {
+          "name": "Get Related Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/laparoscopic-trocar-10mm/related?limit=4",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products", "laparoscopic-trocar-10mm", "related"],
+              "query": [{ "key": "limit", "value": "4" }]
+            }
+          }
+        },
+        {
+          "name": "Create Product (Staff)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Titanium Surgical Forceps 15cm\",\n  \"categoryId\": \"REPLACE_WITH_CATEGORY_UUID\",\n  \"shortDescription\": \"Precision micro-serrated titanium surgical forceps\",\n  \"description\": \"Autoclavable grade 5 titanium forceps designed for atraumatic tissue handling.\",\n  \"specifications\": { \"Length\": \"15cm\", \"Material\": \"Titanium Ti-6Al-4V\", \"Sterilization\": \"Autoclave (134°C)\" },\n  \"compliance\": [\"ISO 13485\", \"CE Mark\"],\n  \"images\": [\"https://images.unsplash.com/photo-1584308666744-24d5c474f2ae\"],\n  \"inStock\": true,\n  \"minOrderQuantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products"]
+            }
+          }
+        },
+        {
+          "name": "Toggle Product Stock Status (Staff)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inStock\": false,\n  \"leadTime\": \"3-5 business days upon order confirmation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/REPLACE_WITH_PRODUCT_UUID/stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products", "REPLACE_WITH_PRODUCT_UUID", "stock"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Surgical Specialties",
+      "item": [
+        {
+          "name": "List Specialties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/specialties",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "specialties"]
+            }
+          }
+        },
+        {
+          "name": "Get Specialty by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/specialties/laparoscopy-endoscopy",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "specialties", "laparoscopy-endoscopy"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Categories",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Get Category by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/surgical-instruments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "categories", "surgical-instruments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Quotes & WhatsApp RFQ Engine",
+      "item": [
+        {
+          "name": "Submit Quote Inquiry (Public with WhatsApp Redirect)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "test-rfq-key-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Dr. Sarah Johnson\",\n  \"customerPhone\": \"08012345678\",\n  \"customerEmail\": \"dr.sarah@apexcare.ng\",\n  \"hospitalClinic\": \"Apex Care Specialist Hospital\",\n  \"location\": \"Abuja, Nigeria\",\n  \"priority\": \"URGENT\",\n  \"customerNotes\": \"Require fast delivery for scheduled general surgeries next week.\",\n  \"items\": [\n    {\n      \"productName\": \"Laparoscopic Trocar 10mm\",\n      \"quantity\": 2,\n      \"specNotes\": \"Autoclavable sleeve\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/quotes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "quotes"]
+            },
+            "description": "Receives quote inquiry, registers reference RFQ-..., triggers webhook notification, and returns WhatsApp deep link."
+          }
+        },
+        {
+          "name": "Get Quote Metrics & Stats Overview (Staff)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/quotes/stats/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "quotes", "stats", "overview"]
+            }
+          }
+        },
+        {
+          "name": "List Quotes (Staff)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/quotes?page=1&limit=20&status=NEW",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "quotes"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "status", "value": "NEW" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Official Quote PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/quotes/REPLACE_WITH_QUOTE_REFERENCE/pdf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "quotes", "REPLACE_WITH_QUOTE_REFERENCE", "pdf"]
+            },
+            "description": "Streams official proforma quotation with Elpima letterhead, items table, and validity disclaimer."
+          }
+        },
+        {
+          "name": "Update Quote Status (Staff)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"QUOTED\",\n  \"adminNotes\": \"Proforma quotation sent via WhatsApp, awaiting PO.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/quotes/REPLACE_WITH_QUOTE_UUID/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "quotes", "REPLACE_WITH_QUOTE_UUID", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Analytics Dashboard",
+      "item": [
+        {
+          "name": "Dashboard Overview KPIs (Staff)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "dashboard"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Supervising Managers",
+      "item": [
+        {
+          "name": "List Managers (Super-Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/managers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "managers"]
+            }
+          }
+        },
+        {
+          "name": "Create Manager (Super-Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Dr. Emeka Okafor\",\n  \"email\": \"emeka@elpimasurgicals.com\",\n  \"phone\": \"+2348022223344\",\n  \"password\": \"TemporaryManagerPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/managers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "managers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Store Settings",
+      "item": [
+        {
+          "name": "Get Store Settings (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "settings"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Audit Logs",
+      "item": [
+        {
+          "name": "List Audit Logs (Super-Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/audit-logs?page=1&limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "audit-logs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "25" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

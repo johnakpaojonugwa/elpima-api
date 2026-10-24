@@ -52,4 +52,34 @@ describe("Auth Security & JWT Hardening", () => {
     expect(error.statusCode).toBe(401);
     expect(error.kind).toBe("account_deactivated");
   });
+
+  it("should prevent role escalation by enforcing database truth over token claims", async () => {
+    // Attacker modifies a JWT payload to claim they are SUPER_ADMIN
+    const tokenWithEscalatedClaim = jwt.sign(
+      { sub: "manager-user-id", email: "manager@elpima.com", role: "SUPER_ADMIN" },
+      env.JWT_SECRET,
+      { algorithm: "HS256" }
+    );
+
+    // Database still reports their real role is SUPERVISING_MANAGER
+    vi.spyOn(prisma.user, "findUnique").mockResolvedValueOnce({
+      id: "manager-user-id",
+      email: "manager@elpima.com",
+      fullName: "Supervising Manager",
+      role: "SUPERVISING_MANAGER",
+      isActive: true,
+    });
+
+    const req = {
+      headers: { authorization: `Bearer ${tokenWithEscalatedClaim}` },
+    };
+    const res = {};
+    const next = vi.fn();
+
+    await requireAuth(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    // Verified that req.user gets the real DB role, NOT the forged claim from the token
+    expect(req.user.role).toBe("SUPERVISING_MANAGER");
+  });
 });
