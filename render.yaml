@@ -1,11 +1,9 @@
 services:
   - type: web
     name: elpima-api
-    env: node
+    env: docker
     plan: starter
     region: frankfurt
-    buildCommand: npm install && npm run build
-    startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -51,3 +49,5 @@ services:
         sync: false
       - key: SUPABASE_STORAGE_REGION
         value: eu-central-1
+      - key: SALES_DESK_WEBHOOK_URL
+        sync: false

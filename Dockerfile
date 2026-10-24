@@ -6,7 +6,7 @@
 # ------------------------------------------
 # Stage 1: Dependency resolution & compilation
 # ------------------------------------------
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 
 # Install openssl for Prisma engines
@@ -16,7 +16,7 @@ RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci
+RUN npm ci || npm install
 
 # Generate Prisma Client for Linux
 RUN npx prisma generate
@@ -24,7 +24,7 @@ RUN npx prisma generate
 # ------------------------------------------
 # Stage 2: Production runner
 # ------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Install dumb-init for proper signal handling (PID 1) and openssl for Prisma runtime
