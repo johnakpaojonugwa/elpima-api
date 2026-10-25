@@ -26,9 +26,9 @@ export async function listAuditLogs({ page = 1, limit = 50, entityType, action }
   return { total, page, limit, logs };
 }
 
-export async function getAuditLogById(id) {
+export async function getAuditLogById(auditLogId) {
   const log = await prisma.auditLog.findUnique({
-    where: { id },
+    where: { id: auditLogId },
     include: {
       actor: {
         select: { id: true, fullName: true, email: true, role: true },

@@ -15,7 +15,7 @@ export async function notifySalesDesk(quote) {
   }
 
   const itemsSummary = quote.items
-    ?.map((i, idx) => `${idx + 1}. ${i.productName} (x${i.quantity})`)
+    ?.map((quoteItem, itemIndex) => `${itemIndex + 1}. ${quoteItem.productName} (x${quoteItem.quantity})`)
     .join("\n") || "No items attached";
 
   const payload = {

@@ -195,9 +195,9 @@ export async function createProduct(input, actor, clientInfo = {}) {
   return product;
 }
 
-export async function updateProduct(id, input, actor, clientInfo = {}) {
+export async function updateProduct(productId, input, actor, clientInfo = {}) {
   const existing = await prisma.product.findUnique({
-    where: { id },
+    where: { id: productId },
   });
 
   if (!existing) {
@@ -207,7 +207,7 @@ export async function updateProduct(id, input, actor, clientInfo = {}) {
   const slug = input.slug ? slugify(input.slug) : input.name ? slugify(input.name) : undefined;
 
   const product = await prisma.product.update({
-    where: { id },
+    where: { id: productId },
     data: {
       ...input,
       ...(slug ? { slug } : {}),
@@ -246,9 +246,9 @@ export async function updateProduct(id, input, actor, clientInfo = {}) {
   return product;
 }
 
-export async function toggleStock(id, { inStock, leadTime }, actor, clientInfo = {}) {
+export async function toggleStock(productId, { inStock, leadTime }, actor, clientInfo = {}) {
   const product = await prisma.product.update({
-    where: { id },
+    where: { id: productId },
     data: {
       inStock,
       ...(leadTime !== undefined ? { leadTime } : {}),
@@ -272,10 +272,10 @@ export async function toggleStock(id, { inStock, leadTime }, actor, clientInfo =
   return product;
 }
 
-export async function deleteProduct(id, actor, clientInfo = {}) {
+export async function deleteProduct(productId, actor, clientInfo = {}) {
   // Soft delete: mark inactive to preserve historical quotation snapshots
   const product = await prisma.product.update({
-    where: { id },
+    where: { id: productId },
     data: { isActive: false },
   });
 
@@ -296,9 +296,9 @@ export async function deleteProduct(id, actor, clientInfo = {}) {
   return product;
 }
 
-export async function getProductById(id) {
+export async function getProductById(productId) {
   const product = await prisma.product.findUnique({
-    where: { id },
+    where: { id: productId },
     include: {
       category: { select: { id: true, name: true, slug: true } },
       specialty: { select: { id: true, name: true, slug: true } },

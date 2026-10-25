@@ -52,9 +52,9 @@ export async function getCategoryBySlug(slug) {
   return category;
 }
 
-export async function getCategoryById(id) {
+export async function getCategoryById(categoryId) {
   const category = await prisma.category.findUnique({
-    where: { id },
+    where: { id: categoryId },
     include: {
       _count: {
         select: { products: { where: { isActive: true } } },
@@ -107,9 +107,9 @@ export async function createCategory(input, actor) {
   return category;
 }
 
-export async function updateCategory(id, input, actor) {
+export async function updateCategory(categoryId, input, actor) {
   const existing = await prisma.category.findUnique({
-    where: { id },
+    where: { id: categoryId },
   });
 
   if (!existing) {
@@ -119,7 +119,7 @@ export async function updateCategory(id, input, actor) {
   const slug = input.slug ? slugify(input.slug) : input.name ? slugify(input.name) : undefined;
 
   const category = await prisma.category.update({
-    where: { id },
+    where: { id: categoryId },
     data: {
       ...input,
       ...(slug ? { slug } : {}),
@@ -141,9 +141,9 @@ export async function updateCategory(id, input, actor) {
   return category;
 }
 
-export async function deleteCategory(id, actor) {
+export async function deleteCategory(categoryId, actor) {
   const productsCount = await prisma.product.count({
-    where: { categoryId: id },
+    where: { categoryId },
   });
 
   if (productsCount > 0) {
@@ -155,7 +155,7 @@ export async function deleteCategory(id, actor) {
   }
 
   const category = await prisma.category.delete({
-    where: { id },
+    where: { id: categoryId },
   });
 
   // Audit log

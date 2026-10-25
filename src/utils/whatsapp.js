@@ -3,14 +3,14 @@ import { env } from "../config/env.js";
 /**
  * Format a WhatsApp deep link URL for a quote inquiry
  *
- * @param {object} params
- * @param {string} params.reference - Quote reference code
- * @param {string} params.customerName - Doctor/Procurement officer name
- * @param {string} [params.hospitalClinic] - Hospital or clinic name
- * @param {string} [params.location] - City / State
- * @param {Array<{productName: string, productSku?: string, quantity: number, customRequirement?: string}>} params.items
- * @param {string} [params.customerNotes]
- * @param {string} [params.targetPhoneNumber]
+ * @param {object} quoteParameters
+ * @param {string} quoteParameters.reference - Quote reference code
+ * @param {string} quoteParameters.customerName - Doctor/Procurement officer name
+ * @param {string} [quoteParameters.hospitalClinic] - Hospital or clinic name
+ * @param {string} [quoteParameters.location] - City / State
+ * @param {Array<{productName: string, productSku?: string, quantity: number, customRequirement?: string}>} quoteParameters.items
+ * @param {string} [quoteParameters.customerNotes]
+ * @param {string} [quoteParameters.targetPhoneNumber]
  * @returns {string} WhatsApp direct link
  */
 export function buildWhatsAppQuoteUrl({
@@ -40,10 +40,10 @@ export function buildWhatsAppQuoteUrl({
   lines.push(``);
   lines.push(`*Requested Equipment / Items:*`);
 
-  items.forEach((item, index) => {
-    const skuText = item.productSku ? ` [SKU: ${item.productSku}]` : "";
-    const reqText = item.customRequirement ? ` _(${item.customRequirement})_` : "";
-    lines.push(`${index + 1}. *${item.productName}*${skuText} — Qty: *${item.quantity}*${reqText}`);
+  items.forEach((quoteItem, itemIndex) => {
+    const skuText = quoteItem.productSku ? ` [SKU: ${quoteItem.productSku}]` : "";
+    const requirementText = quoteItem.customRequirement ? ` _(${quoteItem.customRequirement})_` : "";
+    lines.push(`${itemIndex + 1}. *${quoteItem.productName}*${skuText} — Qty: *${quoteItem.quantity}*${requirementText}`);
   });
 
   if (customerNotes && customerNotes.trim()) {

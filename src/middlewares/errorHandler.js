@@ -5,15 +5,15 @@ import { isProd } from "../config/env.js";
 /**
  * 404 Not Found fallback handler
  */
-export function notFoundHandler(req, res, next) {
-  next(new AppError(404, `Cannot ${req.method} ${req.originalUrl}`, "not_found"));
+export function notFoundHandler(request, response, nextFunction) {
+  nextFunction(new AppError(404, `Cannot ${request.method} ${request.originalUrl}`, "not_found"));
 }
 
 /**
  * Central Error Handler
  */
-export function errorHandler(err, req, res, _next) {
-  const correlationId = req.correlationId || "unknown";
+export function errorHandler(error, request, response, _nextFunction) {
+  const correlationId = request.correlationId || "unknown";
 
   // Default values
   let statusCode = 500;
@@ -21,39 +21,39 @@ export function errorHandler(err, req, res, _next) {
   let kind = "server_error";
   let details = null;
 
-  if (err instanceof AppError) {
-    statusCode = err.statusCode;
-    message = err.message;
-    kind = err.kind;
-    details = err.details;
-  } else if (err.name === "ZodError") {
+  if (error instanceof AppError) {
+    statusCode = error.statusCode;
+    message = error.message;
+    kind = error.kind;
+    details = error.details;
+  } else if (error.name === "ZodError") {
     statusCode = 422;
     message = "Request validation failed";
     kind = "validation_error";
-    details = err.errors;
-  } else if (err.name === "JsonWebTokenError") {
+    details = error.errors;
+  } else if (error.name === "JsonWebTokenError") {
     statusCode = 401;
     message = "Invalid authentication token";
     kind = "unauthorized";
-  } else if (err.name === "TokenExpiredError") {
+  } else if (error.name === "TokenExpiredError") {
     statusCode = 401;
     message = "Authentication token expired";
     kind = "token_expired";
-  } else if (err.code === "P2002") {
+  } else if (error.code === "P2002") {
     statusCode = 409;
     message = "A resource with this unique value already exists";
     kind = "conflict";
-    details = err.meta;
-  } else if (err.code === "P2003") {
+    details = error.meta;
+  } else if (error.code === "P2003") {
     statusCode = 409;
     message = "Operation failed due to related records constraint";
     kind = "foreign_key_violation";
-    details = err.meta;
-  } else if (err.code === "P2023") {
+    details = error.meta;
+  } else if (error.code === "P2023") {
     statusCode = 400;
     message = "Invalid format provided for query parameter or identifier";
     kind = "bad_request";
-  } else if (err.code === "P2025") {
+  } else if (error.code === "P2025") {
     statusCode = 404;
     message = "Requested record not found";
     kind = "not_found";
@@ -61,10 +61,10 @@ export function errorHandler(err, req, res, _next) {
 
   // Log error (with stack trace for unhandled server errors)
   if (statusCode >= 500) {
-    logger.error(`[${correlationId}] Internal Server Error: ${err.message}`, {
-      stack: err.stack,
-      url: req.originalUrl,
-      method: req.method,
+    logger.error(`[${correlationId}] Internal Server Error: ${error.message}`, {
+      stack: error.stack,
+      url: request.originalUrl,
+      method: request.method,
     });
   } else {
     logger.warn(`[${correlationId}] Handled Client Error: ${message} (${statusCode})`);
@@ -77,9 +77,9 @@ export function errorHandler(err, req, res, _next) {
       kind,
       correlationId,
       ...(details ? { details } : {}),
-      ...(!isProd && statusCode >= 500 ? { stack: err.stack } : {}),
+      ...(!isProd && statusCode >= 500 ? { stack: error.stack } : {}),
     },
   };
 
-  res.status(statusCode).json(responsePayload);
+  response.status(statusCode).json(responsePayload);
 }

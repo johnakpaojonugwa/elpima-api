@@ -18,13 +18,13 @@ export async function createQuote(input) {
   const targetWhatsappNumber = settings?.whatsappNumber;
 
   // 2. Fetch products to get point-in-time names and SKUs
-  const productIds = input.items.map((i) => i.productId);
+  const productIds = input.items.map((quoteItem) => quoteItem.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
     select: { id: true, name: true, sku: true, inStock: true },
   });
 
-  const productMap = new Map(products.map((p) => [p.id, p]));
+  const productMap = new Map(products.map((product) => [product.id, product]));
 
   // Validate that all items exist
   for (const item of input.items) {
@@ -38,11 +38,11 @@ export async function createQuote(input) {
 
   // 4. Prepare items snapshot
   const itemSnapshots = input.items.map((item) => {
-    const prod = productMap.get(item.productId);
+    const product = productMap.get(item.productId);
     return {
       productId: item.productId,
-      productName: prod.name,
-      productSku: prod.sku,
+      productName: product.name,
+      productSku: product.sku,
       quantity: item.quantity,
       customRequirement: item.customRequirement,
     };
@@ -172,9 +172,9 @@ export async function getQuoteByReference(reference) {
 /**
  * Update quote status and admin notes
  */
-export async function updateQuoteStatus(id, { status, adminNotes }, actor) {
+export async function updateQuoteStatus(quoteId, { status, adminNotes }, actor) {
   const existing = await prisma.quoteInquiry.findUnique({
-    where: { id },
+    where: { id: quoteId },
   });
 
   if (!existing) {
@@ -182,7 +182,7 @@ export async function updateQuoteStatus(id, { status, adminNotes }, actor) {
   }
 
   const quote = await prisma.quoteInquiry.update({
-    where: { id },
+    where: { id: quoteId },
     data: {
       status,
       ...(adminNotes !== undefined ? { adminNotes } : {}),
@@ -211,7 +211,7 @@ export async function updateQuoteStatus(id, { status, adminNotes }, actor) {
 /**
  * Assign quote to a Supervising Manager
  */
-export async function assignQuote(id, { assignedToId }, actor) {
+export async function assignQuote(quoteId, { assignedToId }, actor) {
   const manager = await prisma.user.findUnique({
     where: { id: assignedToId },
   });
@@ -221,7 +221,7 @@ export async function assignQuote(id, { assignedToId }, actor) {
   }
 
   const quote = await prisma.quoteInquiry.update({
-    where: { id },
+    where: { id: quoteId },
     data: { assignedToId },
     include: {
       assignedTo: { select: { id: true, fullName: true, email: true } },
@@ -278,9 +278,9 @@ export async function getQuoteStats() {
 /**
  * Delete / Archive a spam or cancelled quote inquiry (Super-Admin only)
  */
-export async function deleteQuote(id, actor, clientInfo = {}) {
+export async function deleteQuote(quoteId, actor, clientInfo = {}) {
   const quote = await prisma.quoteInquiry.findUnique({
-    where: { id },
+    where: { id: quoteId },
   });
 
   if (!quote) {
@@ -288,7 +288,7 @@ export async function deleteQuote(id, actor, clientInfo = {}) {
   }
 
   await prisma.quoteInquiry.delete({
-    where: { id },
+    where: { id: quoteId },
   });
 
   await prisma.auditLog.create({

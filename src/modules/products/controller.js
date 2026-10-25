@@ -1,15 +1,15 @@
 import * as productService from "./service.js";
 import { successResponse, paginatedResponse } from "../../utils/response.js";
 
-export async function listProducts(req, res, next) {
+export async function listProducts(request, response, nextFunction) {
   try {
-    const includeInactive = req.query.includeInactive === "true" && req.user;
+    const includeInactive = request.query.includeInactive === "true" && request.user;
     const { total, page, limit, products } = await productService.listProducts({
-      ...req.query,
+      ...request.query,
       includeInactive,
     });
 
-    return paginatedResponse(res, {
+    return paginatedResponse(response, {
       data: products,
       total,
       page,
@@ -17,95 +17,95 @@ export async function listProducts(req, res, next) {
       message: "Products retrieved successfully",
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function getProductBySlug(req, res, next) {
+export async function getProductBySlug(request, response, nextFunction) {
   try {
-    const product = await productService.getProductBySlug(req.params.slug);
-    return successResponse(res, {
+    const product = await productService.getProductBySlug(request.params.slug);
+    return successResponse(response, {
       message: "Product retrieved successfully",
       data: product,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function createProduct(req, res, next) {
+export async function createProduct(request, response, nextFunction) {
   try {
-    const clientInfo = { ip: req.ip, userAgent: req.headers["user-agent"] };
-    const product = await productService.createProduct(req.body, req.user, clientInfo);
-    return successResponse(res, {
+    const clientInfo = { ip: request.ip, userAgent: request.headers["user-agent"] };
+    const product = await productService.createProduct(request.body, request.user, clientInfo);
+    return successResponse(response, {
       statusCode: 201,
       message: "Product created successfully",
       data: product,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function updateProduct(req, res, next) {
+export async function updateProduct(request, response, nextFunction) {
   try {
-    const clientInfo = { ip: req.ip, userAgent: req.headers["user-agent"] };
-    const product = await productService.updateProduct(req.params.id, req.body, req.user, clientInfo);
-    return successResponse(res, {
+    const clientInfo = { ip: request.ip, userAgent: request.headers["user-agent"] };
+    const product = await productService.updateProduct(request.params.id, request.body, request.user, clientInfo);
+    return successResponse(response, {
       message: "Product updated successfully",
       data: product,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function toggleStock(req, res, next) {
+export async function toggleStock(request, response, nextFunction) {
   try {
-    const clientInfo = { ip: req.ip, userAgent: req.headers["user-agent"] };
-    const product = await productService.toggleStock(req.params.id, req.body, req.user, clientInfo);
-    return successResponse(res, {
+    const clientInfo = { ip: request.ip, userAgent: request.headers["user-agent"] };
+    const product = await productService.toggleStock(request.params.id, request.body, request.user, clientInfo);
+    return successResponse(response, {
       message: "Product stock updated successfully",
       data: product,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function deleteProduct(req, res, next) {
+export async function deleteProduct(request, response, nextFunction) {
   try {
-    const clientInfo = { ip: req.ip, userAgent: req.headers["user-agent"] };
-    await productService.deleteProduct(req.params.id, req.user, clientInfo);
-    return successResponse(res, {
+    const clientInfo = { ip: request.ip, userAgent: request.headers["user-agent"] };
+    await productService.deleteProduct(request.params.id, request.user, clientInfo);
+    return successResponse(response, {
       message: "Product deactivated successfully",
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function getProductById(req, res, next) {
+export async function getProductById(request, response, nextFunction) {
   try {
-    const product = await productService.getProductById(req.params.id);
-    return successResponse(res, {
+    const product = await productService.getProductById(request.params.id);
+    return successResponse(response, {
       message: "Product retrieved successfully",
       data: product,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function getRelatedProducts(req, res, next) {
+export async function getRelatedProducts(request, response, nextFunction) {
   try {
-    const limit = Number(req.query.limit) || 4;
-    const related = await productService.getRelatedProducts(req.params.slug, limit);
-    return successResponse(res, {
+    const limit = Number(request.query.limit) || 4;
+    const related = await productService.getRelatedProducts(request.params.slug, limit);
+    return successResponse(response, {
       message: "Related products retrieved successfully",
       data: related,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }

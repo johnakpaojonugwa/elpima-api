@@ -6,10 +6,10 @@ import { AppError } from "../utils/AppError.js";
 /**
  * Middleware: Verify Bearer JWT (pinned to HS256) and ensure user is still active in DB
  */
-export async function requireAuth(req, _res, next) {
-  const authHeader = req.headers.authorization;
+export async function requireAuth(request, _response, nextFunction) {
+  const authHeader = request.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return next(new AppError(401, "Authentication token required", "unauthorized"));
+    return nextFunction(new AppError(401, "Authentication token required", "unauthorized"));
   }
 
   const token = authHeader.split(" ")[1];
@@ -22,9 +22,9 @@ export async function requireAuth(req, _res, next) {
     });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
-      return next(new AppError(401, "Session expired, please log in again", "token_expired"));
+      return nextFunction(new AppError(401, "Session expired, please log in again", "token_expired"));
     }
-    return next(new AppError(401, "Invalid authentication token", "unauthorized"));
+    return nextFunction(new AppError(401, "Invalid authentication token", "unauthorized"));
   }
 
   // Security: Check database to ensure account hasn't been deactivated since token issuance
@@ -41,15 +41,15 @@ export async function requireAuth(req, _res, next) {
     });
 
     if (!user || !user.isActive) {
-      return next(
+      return nextFunction(
         new AppError(401, "Account has been deactivated or no longer exists", "account_deactivated")
       );
     }
 
-    req.user = user;
-    next();
+    request.user = user;
+    nextFunction();
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
@@ -58,13 +58,13 @@ export async function requireAuth(req, _res, next) {
  * @param {...string} allowedRoles
  */
 export function requireRole(...allowedRoles) {
-  return (req, _res, next) => {
-    if (!req.user) {
-      return next(new AppError(401, "Authentication required", "unauthorized"));
+  return (request, _response, nextFunction) => {
+    if (!request.user) {
+      return nextFunction(new AppError(401, "Authentication required", "unauthorized"));
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return next(
+    if (!allowedRoles.includes(request.user.role)) {
+      return nextFunction(
         new AppError(
           403,
           "You do not have permission to perform this action",
@@ -73,6 +73,6 @@ export function requireRole(...allowedRoles) {
       );
     }
 
-    next();
+    nextFunction();
   };
 }

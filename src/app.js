@@ -12,17 +12,17 @@ import { correlationId } from "./middlewares/correlationId.js";
 import { globalRateLimiter } from "./middlewares/rateLimiter.js";
 import { setupSwagger } from "./config/swagger.js";
 
-function jsonAccessLog(tokens, req, res) {
+function jsonAccessLog(tokens, request, response) {
   return JSON.stringify({
-    msg: "http_request",
-    correlationId: req.correlationId,
-    method: tokens.method(req, res),
-    url: tokens.url(req, res),
-    status: Number(tokens.status(req, res)),
-    durationMs: Number(tokens["response-time"](req, res)),
-    ip: tokens["remote-addr"](req, res),
-    actorId: req.user?.id || null,
-    actorRole: req.user?.role || null,
+    message: "http_request",
+    correlationId: request.correlationId,
+    method: tokens.method(request, response),
+    url: tokens.url(request, response),
+    status: Number(tokens.status(request, response)),
+    durationMs: Number(tokens["response-time"](request, response)),
+    ip: tokens["remote-addr"](request, response),
+    actorId: request.user?.id || null,
+    actorRole: request.user?.role || null,
   });
 }
 

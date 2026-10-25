@@ -10,12 +10,12 @@ const upload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024, // Max 5MB per image
   },
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_request, file, callback) => {
     const allowedMimes = ["image/jpeg", "image/png", "image/webp"];
     if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
+      callback(null, true);
     } else {
-      cb(
+      callback(
         new AppError(
           400,
           "Invalid file type. Only JPEG, PNG, and WebP surgical equipment images are allowed.",

@@ -2,45 +2,45 @@ import * as uploadService from "./service.js";
 import { successResponse } from "../../utils/response.js";
 import { AppError } from "../../utils/AppError.js";
 
-export async function uploadSingleImage(req, res, next) {
+export async function uploadSingleImage(request, response, nextFunction) {
   try {
-    if (!req.file) {
+    if (!request.file) {
       throw new AppError(400, "Please provide an image file under the 'image' field", "bad_request");
     }
 
-    const url = await uploadService.uploadImage(req.file);
+    const url = await uploadService.uploadImage(request.file);
 
-    return successResponse(res, {
+    return successResponse(response, {
       statusCode: 201,
       message: "Image uploaded successfully",
       data: {
         url,
-        fileName: req.file.originalname,
-        size: req.file.size,
-        mimeType: req.file.mimetype,
+        fileName: request.file.originalname,
+        size: request.file.size,
+        mimeType: request.file.mimetype,
       },
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function uploadMultipleImages(req, res, next) {
+export async function uploadMultipleImages(request, response, nextFunction) {
   try {
-    if (!req.files || !req.files.length) {
+    if (!request.files || !request.files.length) {
       throw new AppError(400, "Please provide image files under the 'images' field", "bad_request");
     }
 
     const urls = await Promise.all(
-      req.files.map((file) => uploadService.uploadImage(file))
+      request.files.map((file) => uploadService.uploadImage(file))
     );
 
-    return successResponse(res, {
+    return successResponse(response, {
       statusCode: 201,
       message: `${urls.length} images uploaded successfully`,
       data: { urls },
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }

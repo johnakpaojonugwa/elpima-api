@@ -1,23 +1,23 @@
 import * as quoteService from "./service.js";
 import { successResponse, paginatedResponse } from "../../utils/response.js";
 
-export async function createQuote(req, res, next) {
+export async function createQuote(request, response, nextFunction) {
   try {
-    const result = await quoteService.createQuote(req.body);
-    return successResponse(res, {
+    const result = await quoteService.createQuote(request.body);
+    return successResponse(response, {
       statusCode: 201,
       message: "Quote inquiry received successfully. Redirecting to WhatsApp.",
       data: result,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function listQuotes(req, res, next) {
+export async function listQuotes(request, response, nextFunction) {
   try {
-    const { total, page, limit, quotes } = await quoteService.listQuotes(req.query);
-    return paginatedResponse(res, {
+    const { total, page, limit, quotes } = await quoteService.listQuotes(request.query);
+    return paginatedResponse(response, {
       data: quotes,
       total,
       page,
@@ -25,86 +25,86 @@ export async function listQuotes(req, res, next) {
       message: "Quote inquiries retrieved successfully",
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function getQuoteByReference(req, res, next) {
+export async function getQuoteByReference(request, response, nextFunction) {
   try {
-    const quote = await quoteService.getQuoteByReference(req.params.reference);
-    return successResponse(res, {
+    const quote = await quoteService.getQuoteByReference(request.params.reference);
+    return successResponse(response, {
       message: "Quote inquiry retrieved successfully",
       data: quote,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function downloadQuotePdf(req, res, next) {
+export async function downloadQuotePdf(request, response, nextFunction) {
   try {
-    const quote = await quoteService.getQuoteByReference(req.params.reference);
+    const quote = await quoteService.getQuoteByReference(request.params.reference);
     const settings = await quoteService.getStoreSettings();
 
-    const doc = (await import("../../utils/pdfGenerator.js")).generateQuotePdf(quote, settings);
+    const pdfDocument = (await import("../../utils/pdfGenerator.js")).generateQuotePdf(quote, settings);
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
+    response.setHeader("Content-Type", "application/pdf");
+    response.setHeader(
       "Content-Disposition",
       `attachment; filename="Elpima_Quote_${quote.reference}.pdf"`
     );
 
-    doc.pipe(res);
-    doc.end();
+    pdfDocument.pipe(response);
+    pdfDocument.end();
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function updateQuoteStatus(req, res, next) {
+export async function updateQuoteStatus(request, response, nextFunction) {
   try {
-    const quote = await quoteService.updateQuoteStatus(req.params.id, req.body, req.user);
-    return successResponse(res, {
+    const quote = await quoteService.updateQuoteStatus(request.params.id, request.body, request.user);
+    return successResponse(response, {
       message: "Quote status updated successfully",
       data: quote,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function assignQuote(req, res, next) {
+export async function assignQuote(request, response, nextFunction) {
   try {
-    const quote = await quoteService.assignQuote(req.params.id, req.body, req.user);
-    return successResponse(res, {
+    const quote = await quoteService.assignQuote(request.params.id, request.body, request.user);
+    return successResponse(response, {
       message: "Quote assigned successfully",
       data: quote,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function getQuoteStats(_req, res, next) {
+export async function getQuoteStats(_request, response, nextFunction) {
   try {
     const stats = await quoteService.getQuoteStats();
-    return successResponse(res, {
+    return successResponse(response, {
       message: "Quote metrics retrieved successfully",
       data: stats,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function deleteQuote(req, res, next) {
+export async function deleteQuote(request, response, nextFunction) {
   try {
-    const clientInfo = { ip: req.ip, userAgent: req.headers["user-agent"] };
-    const result = await quoteService.deleteQuote(req.params.id, req.user, clientInfo);
-    return successResponse(res, {
+    const clientInfo = { ip: request.ip, userAgent: request.headers["user-agent"] };
+    const result = await quoteService.deleteQuote(request.params.id, request.user, clientInfo);
+    return successResponse(response, {
       message: result.message,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }

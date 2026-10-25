@@ -1,81 +1,81 @@
 import * as authService from "./service.js";
 import { successResponse } from "../../utils/response.js";
 
-export async function login(req, res, next) {
+export async function login(request, response, nextFunction) {
   try {
     const clientInfo = {
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
+      ip: request.ip,
+      userAgent: request.headers["user-agent"],
     };
-    const result = await authService.login(req.body, clientInfo);
-    return successResponse(res, {
+    const result = await authService.login(request.body, clientInfo);
+    return successResponse(response, {
       statusCode: 200,
       message: "Authentication successful",
       data: result,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function getProfile(req, res, next) {
+export async function getProfile(request, response, nextFunction) {
   try {
-    const profile = await authService.getProfile(req.user.id);
-    return successResponse(res, {
+    const profile = await authService.getProfile(request.user.id);
+    return successResponse(response, {
       statusCode: 200,
       message: "Profile retrieved successfully",
       data: profile,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function changePassword(req, res, next) {
+export async function changePassword(request, response, nextFunction) {
   try {
     const clientInfo = {
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
+      ip: request.ip,
+      userAgent: request.headers["user-agent"],
     };
-    const result = await authService.changePassword(req.user.id, req.body, clientInfo);
-    return successResponse(res, {
+    const result = await authService.changePassword(request.user.id, request.body, clientInfo);
+    return successResponse(response, {
       statusCode: 200,
       message: result.message,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function logout(req, res, next) {
+export async function logout(request, response, nextFunction) {
   try {
     const clientInfo = {
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
+      ip: request.ip,
+      userAgent: request.headers["user-agent"],
     };
-    const result = await authService.logout(req.user, clientInfo);
-    return successResponse(res, {
+    const result = await authService.logout(request.user, clientInfo);
+    return successResponse(response, {
       statusCode: 200,
       message: result.message,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }
 
-export async function updateProfile(req, res, next) {
+export async function updateProfile(request, response, nextFunction) {
   try {
     const clientInfo = {
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
+      ip: request.ip,
+      userAgent: request.headers["user-agent"],
     };
-    const updated = await authService.updateProfile(req.user.id, req.body, clientInfo);
-    return successResponse(res, {
+    const updated = await authService.updateProfile(request.user.id, request.body, clientInfo);
+    return successResponse(response, {
       statusCode: 200,
       message: "Profile updated successfully",
       data: updated,
     });
   } catch (error) {
-    next(error);
+    nextFunction(error);
   }
 }

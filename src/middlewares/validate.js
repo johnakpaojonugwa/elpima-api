@@ -6,16 +6,16 @@ import { AppError } from "../utils/AppError.js";
  * @param {"body"|"query"|"params"} [source="body"]
  */
 export function validate(schema, source = "body") {
-  return (req, _res, next) => {
-    const result = schema.safeParse(req[source]);
+  return (request, _response, nextFunction) => {
+    const result = schema.safeParse(request[source]);
 
     if (!result.success) {
-      const formattedErrors = result.error.errors.map((err) => ({
-        field: err.path.join("."),
-        message: err.message,
+      const formattedErrors = result.error.errors.map((validationIssue) => ({
+        field: validationIssue.path.join("."),
+        message: validationIssue.message,
       }));
 
-      return next(
+      return nextFunction(
         new AppError(
           422,
           `Validation failed for ${source}`,
@@ -26,7 +26,7 @@ export function validate(schema, source = "body") {
     }
 
     // Replace the request source with sanitized/parsed data (casts types if coerced)
-    req[source] = result.data;
-    next();
+    request[source] = result.data;
+    nextFunction();
   };
 }

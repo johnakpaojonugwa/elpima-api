@@ -16,23 +16,23 @@ setInterval(() => {
  * Idempotency middleware for state-changing endpoints (e.g., POST quote request)
  * Hardened with maximum key cap and LRU eviction to prevent heap exhaustion / OOM attacks
  */
-export function idempotency(req, res, next) {
-  const key = req.headers["idempotency-key"];
+export function idempotency(request, response, nextFunction) {
+  const key = request.headers["idempotency-key"];
   if (!key || typeof key !== "string" || key.length > 128) {
-    return next();
+    return nextFunction();
   }
 
   const cached = idempotencyCache.get(key);
   if (cached) {
     // Return cached response with header indication
-    res.setHeader("X-Cache-Lookup", "HIT-IDEMPOTENT");
-    return res.status(cached.status).json(cached.body);
+    response.setHeader("X-Cache-Lookup", "HIT-IDEMPOTENT");
+    return response.status(cached.status).json(cached.body);
   }
 
   // Intercept json output to save to cache
-  const originalJson = res.json.bind(res);
-  res.json = (body) => {
-    if (res.statusCode >= 200 && res.statusCode < 300) {
+  const originalJson = response.json.bind(response);
+  response.json = (responseBody) => {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       // Memory protection: if cache exceeds maximum allowed size, evict oldest entry
       if (idempotencyCache.size >= MAX_IDEMPOTENCY_KEYS) {
         const oldestKey = idempotencyCache.keys().next().value;
@@ -40,13 +40,13 @@ export function idempotency(req, res, next) {
       }
 
       idempotencyCache.set(key, {
-        status: res.statusCode,
-        body,
+        status: response.statusCode,
+        body: responseBody,
         timestamp: Date.now(),
       });
     }
-    return originalJson(body);
+    return originalJson(responseBody);
   };
 
-  next();
+  nextFunction();
 }

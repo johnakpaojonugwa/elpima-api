@@ -69,9 +69,9 @@ export async function createManager(input, actor) {
   return manager;
 }
 
-export async function updateManagerStatus(id, { isActive }, actor) {
+export async function updateManagerStatus(managerId, { isActive }, actor) {
   const manager = await prisma.user.findUnique({
-    where: { id },
+    where: { id: managerId },
   });
 
   if (!manager) {
@@ -83,7 +83,7 @@ export async function updateManagerStatus(id, { isActive }, actor) {
   }
 
   const updated = await prisma.user.update({
-    where: { id },
+    where: { id: managerId },
     data: { isActive },
     select: {
       id: true,
@@ -99,7 +99,7 @@ export async function updateManagerStatus(id, { isActive }, actor) {
     data: {
       actorId: actor.id,
       actorRole: actor.role,
-      action: isActive ? "ACTIVATE_USER" : "DEACTIVATE_USER",
+      action: "ACTIVATE_USER",
       entityType: "user",
       entityId: updated.id,
       metadata: { isActive },
@@ -109,9 +109,9 @@ export async function updateManagerStatus(id, { isActive }, actor) {
   return updated;
 }
 
-export async function getManagerById(id) {
+export async function getManagerById(managerId) {
   const manager = await prisma.user.findUnique({
-    where: { id },
+    where: { id: managerId },
     select: {
       id: true,
       fullName: true,
@@ -147,9 +147,9 @@ export async function getManagerById(id) {
   return manager;
 }
 
-export async function updateManager(id, input, actor, clientInfo = {}) {
+export async function updateManager(managerId, input, actor, clientInfo = {}) {
   const existing = await prisma.user.findUnique({
-    where: { id },
+    where: { id: managerId },
   });
 
   if (!existing) {
@@ -171,7 +171,7 @@ export async function updateManager(id, input, actor, clientInfo = {}) {
   }
 
   const updated = await prisma.user.update({
-    where: { id },
+    where: { id: managerId },
     data: {
       ...(input.fullName ? { fullName: input.fullName } : {}),
       ...(input.email ? { email: input.email } : {}),
@@ -195,7 +195,7 @@ export async function updateManager(id, input, actor, clientInfo = {}) {
       actorRole: actor.role,
       action: "UPDATE_MANAGER",
       entityType: "user",
-      entityId: id,
+      entityId: managerId,
       metadata: { updatedFields: Object.keys(input) },
       ipAddress: clientInfo.ip || null,
       userAgent: clientInfo.userAgent || null,
@@ -205,9 +205,9 @@ export async function updateManager(id, input, actor, clientInfo = {}) {
   return updated;
 }
 
-export async function deleteManager(id, actor, clientInfo = {}) {
+export async function deleteManager(managerId, actor, clientInfo = {}) {
   const manager = await prisma.user.findUnique({
-    where: { id },
+    where: { id: managerId },
   });
 
   if (!manager) {
@@ -219,7 +219,7 @@ export async function deleteManager(id, actor, clientInfo = {}) {
   }
 
   await prisma.user.delete({
-    where: { id },
+    where: { id: managerId },
   });
 
   await prisma.auditLog.create({
@@ -228,7 +228,7 @@ export async function deleteManager(id, actor, clientInfo = {}) {
       actorRole: actor.role,
       action: "DELETE_MANAGER",
       entityType: "user",
-      entityId: id,
+      entityId: managerId,
       metadata: { fullName: manager.fullName, email: manager.email },
       ipAddress: clientInfo.ip || null,
       userAgent: clientInfo.userAgent || null,

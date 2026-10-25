@@ -7,7 +7,7 @@ import PDFDocument from "pdfkit";
  * @returns {PDFKit.PDFDocument} - Streaming PDFDocument instance
  */
 export function generateQuotePdf(quote, settings = {}) {
-  const doc = new PDFDocument({
+  const pdfDocument = new PDFDocument({
     margin: 40,
     size: "A4",
     info: {
@@ -24,7 +24,7 @@ export function generateQuotePdf(quote, settings = {}) {
   const tableHeaderBg = "#EBF2F7";
 
   // 1. Company Header
-  doc
+  pdfDocument
     .fillColor(primaryColor)
     .fontSize(18)
     .font("Helvetica-Bold")
@@ -40,7 +40,7 @@ export function generateQuotePdf(quote, settings = {}) {
     );
 
   // Horizontal Rule
-  doc
+  pdfDocument
     .strokeColor("#D1D9E0")
     .lineWidth(1)
     .moveTo(40, 90)
@@ -48,7 +48,7 @@ export function generateQuotePdf(quote, settings = {}) {
     .stroke();
 
   // 2. Document Title
-  doc
+  pdfDocument
     .fillColor(secondaryColor)
     .fontSize(14)
     .font("Helvetica-Bold")
@@ -58,7 +58,7 @@ export function generateQuotePdf(quote, settings = {}) {
   const metaTop = 130;
 
   // Left: Bill To
-  doc
+  pdfDocument
     .fillColor(primaryColor)
     .fontSize(10)
     .font("Helvetica-Bold")
@@ -77,7 +77,7 @@ export function generateQuotePdf(quote, settings = {}) {
     year: "numeric",
   });
 
-  doc
+  pdfDocument
     .fillColor(primaryColor)
     .fontSize(10)
     .font("Helvetica-Bold")
@@ -93,11 +93,11 @@ export function generateQuotePdf(quote, settings = {}) {
   let tableTop = 205;
 
   // Table Header Background
-  doc
+  pdfDocument
     .rect(40, tableTop, 515, 22)
     .fill(tableHeaderBg);
 
-  doc
+  pdfDocument
     .fillColor(primaryColor)
     .fontSize(9)
     .font("Helvetica-Bold")
@@ -110,37 +110,37 @@ export function generateQuotePdf(quote, settings = {}) {
   tableTop += 25;
 
   // Table Rows
-  quote.items.forEach((item, index) => {
+  quote.items.forEach((quoteItem, itemIndex) => {
     // Alternating background for rows
-    if (index % 2 === 1) {
-      doc.rect(40, tableTop - 3, 515, 20).fill("#F9FBFC");
+    if (itemIndex % 2 === 1) {
+      pdfDocument.rect(40, tableTop - 3, 515, 20).fill("#F9FBFC");
     }
 
-    doc
+    pdfDocument
       .fillColor(darkGray)
       .fontSize(8.5)
       .font("Helvetica")
-      .text(String(index + 1), 45, tableTop + 2)
+      .text(String(itemIndex + 1), 45, tableTop + 2)
       .font("Helvetica-Bold")
-      .text(item.productName, 70, tableTop + 2, { width: 250, ellipsis: true })
+      .text(quoteItem.productName, 70, tableTop + 2, { width: 250, ellipsis: true })
       .font("Helvetica")
-      .text(item.productSku || "ELP-STD", 330, tableTop + 2)
-      .text(String(item.quantity), 420, tableTop + 2)
+      .text(quoteItem.productSku || "ELP-STD", 330, tableTop + 2)
+      .text(String(quoteItem.quantity), 420, tableTop + 2)
       .text("Price on Request", 470, tableTop + 2);
 
-    if (item.customRequirement) {
+    if (quoteItem.customRequirement) {
       tableTop += 14;
-      doc
+      pdfDocument
         .fontSize(7.5)
         .fillColor(lightGray)
-        .text(`Note: ${item.customRequirement}`, 70, tableTop, { width: 440 });
+        .text(`Note: ${quoteItem.customRequirement}`, 70, tableTop, { width: 440 });
     }
 
     tableTop += 18;
   });
 
   // Table bottom border
-  doc
+  pdfDocument
     .strokeColor("#D1D9E0")
     .lineWidth(0.5)
     .moveTo(40, tableTop + 5)
@@ -151,7 +151,7 @@ export function generateQuotePdf(quote, settings = {}) {
 
   // 5. Customer Notes (if any)
   if (quote.customerNotes) {
-    doc
+    pdfDocument
       .fillColor(primaryColor)
       .fontSize(9)
       .font("Helvetica-Bold")
@@ -167,11 +167,11 @@ export function generateQuotePdf(quote, settings = {}) {
   // 6. Terms, Warranty & Bank Transfer Notice
   const disclaimerTop = Math.max(tableTop + 15, 580);
 
-  doc
+  pdfDocument
     .rect(40, disclaimerTop, 515, 75)
     .fill("#F5F8FA");
 
-  doc
+  pdfDocument
     .fillColor(primaryColor)
     .fontSize(8.5)
     .font("Helvetica-Bold")
@@ -201,7 +201,7 @@ export function generateQuotePdf(quote, settings = {}) {
     );
 
   // 7. Signature & Stamp Block
-  doc
+  pdfDocument
     .fillColor(primaryColor)
     .fontSize(8.5)
     .font("Helvetica-Bold")
@@ -216,5 +216,5 @@ export function generateQuotePdf(quote, settings = {}) {
     .font("Helvetica")
     .text("Authorized Signature & Stamp", 400, disclaimerTop + 145);
 
-  return doc;
+  return pdfDocument;
 }

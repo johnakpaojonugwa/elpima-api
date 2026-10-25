@@ -50,9 +50,9 @@ export async function getSpecialtyBySlug(slug) {
   return specialty;
 }
 
-export async function getSpecialtyById(id) {
+export async function getSpecialtyById(specialtyId) {
   const specialty = await prisma.specialty.findUnique({
-    where: { id },
+    where: { id: specialtyId },
     include: {
       _count: {
         select: { products: { where: { isActive: true } } },
@@ -101,9 +101,9 @@ export async function createSpecialty(input, actor) {
   return specialty;
 }
 
-export async function updateSpecialty(id, input, actor) {
+export async function updateSpecialty(specialtyId, input, actor) {
   const existing = await prisma.specialty.findUnique({
-    where: { id },
+    where: { id: specialtyId },
   });
 
   if (!existing) {
@@ -113,7 +113,7 @@ export async function updateSpecialty(id, input, actor) {
   const slug = input.slug ? slugify(input.slug) : input.name ? slugify(input.name) : undefined;
 
   const specialty = await prisma.specialty.update({
-    where: { id },
+    where: { id: specialtyId },
     data: {
       ...input,
       ...(slug ? { slug } : {}),
@@ -134,9 +134,9 @@ export async function updateSpecialty(id, input, actor) {
   return specialty;
 }
 
-export async function deleteSpecialty(id, actor) {
+export async function deleteSpecialty(specialtyId, actor) {
   const productsCount = await prisma.product.count({
-    where: { specialtyId: id },
+    where: { specialtyId },
   });
 
   if (productsCount > 0) {
@@ -148,7 +148,7 @@ export async function deleteSpecialty(id, actor) {
   }
 
   const specialty = await prisma.specialty.delete({
-    where: { id },
+    where: { id: specialtyId },
   });
 
   await prisma.auditLog.create({

@@ -64,8 +64,8 @@ export const swaggerSpec = swaggerJsdoc(options);
 
 export function setupSwagger(app) {
   app.use("/api/v1/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.get("/api/v1/docs/openapi.json", (_req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerSpec);
+  app.get("/api/v1/docs/openapi.json", (_request, response) => {
+    response.setHeader("Content-Type", "application/json");
+    response.send(swaggerSpec);
   });
 }
