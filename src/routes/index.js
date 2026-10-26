@@ -11,7 +11,29 @@ import { settingsRouter } from "../modules/settings/route.js";
 import { uploadRouter } from "../modules/upload/route.js";
 import { analyticsRouter } from "../modules/analytics/route.js";
 
+import { env } from "../config/env.js";
+
 export const router = Router();
+
+// Root welcome & service directory endpoint
+router.get("/", (request, response) => {
+  response.json({
+    success: true,
+    data: {
+      name: env.COMPANY_NAME || "Elpima Surgicals Limited API",
+      version: "1.0.0",
+      status: "operational",
+      environment: env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+      links: {
+        documentation: "/api/v1/docs",
+        health: "/health",
+        api: "/api/v1",
+      },
+    },
+    message: "Welcome to Elpima Surgicals API. Use /api/v1/docs for interactive OpenAPI documentation.",
+  });
+});
 
 // Unversioned system health check
 router.use("/health", healthRouter);

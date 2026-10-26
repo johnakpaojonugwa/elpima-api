@@ -14,6 +14,17 @@ describe("Health Route & API Baseline", () => {
     expect(res.headers["x-request-id"]).toBeDefined();
   });
 
+  it("GET / should return 200 with root welcome envelope and documentation links", async () => {
+    const res = await request(app).get("/");
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.status).toBe("operational");
+    expect(res.body.data.links.documentation).toBe("/api/v1/docs");
+    expect(res.body.data.links.health).toBe("/health");
+    expect(res.body.message).toContain("Elpima Surgicals API");
+  });
+
   it("GET /api/v1/non-existent-route should return structured 404 error envelope", async () => {
     const res = await request(app).get("/api/v1/non-existent-route");
 
