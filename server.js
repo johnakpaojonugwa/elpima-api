@@ -2,6 +2,7 @@ import "dotenv/config";
 import { env } from "./src/config/env.js";
 import { createApp } from "./src/app.js";
 import { connectDb, disconnectDb } from "./src/config/prisma.js";
+import { shutdownQueues } from "./src/queues/index.js";
 import { logger } from "./src/utils/logger.js";
 
 async function bootstrap() {
@@ -30,6 +31,7 @@ async function bootstrap() {
 
     server.close(async () => {
       clearTimeout(forceTimer);
+      await shutdownQueues();
       await disconnectDb();
       logger.info("Server closed gracefully. Exiting process.");
       process.exit(0);

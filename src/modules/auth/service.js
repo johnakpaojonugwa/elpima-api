@@ -6,7 +6,7 @@ import qrcode from "qrcode";
 import { prisma } from "../../config/prisma.js";
 import { env } from "../../config/env.js";
 import { AppError } from "../../utils/AppError.js";
-import { sendPasswordResetEmail, sendTwoFactorSecurityAlert } from "../../utils/mailer.js";
+import { queuePasswordResetEmail, queueTwoFactorSecurityAlert } from "../../queues/index.js";
 
 // Constant-time dummy hash to prevent user enumeration via timing attacks
 const DUMMY_BCRYPT_HASH = "$2a$12$e80yG2wGz7P.N3s8M8p1.eJ3V2Lw0TqC1UjL4Qc2D0V3W4X5Y6Z7.";
@@ -434,7 +434,7 @@ export async function enable2FA(userId, { code }, clientInfo = {}) {
     },
   });
 
-  sendTwoFactorSecurityAlert({
+  queueTwoFactorSecurityAlert({
     toEmail: user.email,
     recipientName: user.fullName,
     action: "ENABLED",
@@ -499,7 +499,7 @@ export async function disable2FA(userId, { password, code }, clientInfo = {}) {
     },
   });
 
-  sendTwoFactorSecurityAlert({
+  queueTwoFactorSecurityAlert({
     toEmail: user.email,
     recipientName: user.fullName,
     action: "DISABLED",
@@ -583,7 +583,7 @@ export async function regenerateBackupCodes(userId, { password, code }, clientIn
     },
   });
 
-  sendTwoFactorSecurityAlert({
+  queueTwoFactorSecurityAlert({
     toEmail: user.email,
     recipientName: user.fullName,
     action: "BACKUP_REGENERATED",
@@ -955,7 +955,7 @@ export async function forgotPassword({ email }, clientInfo = {}) {
       },
     });
 
-    await sendPasswordResetEmail({
+    await queuePasswordResetEmail({
       toEmail: user.email,
       recipientName: user.fullName,
       resetToken: rawResetToken,

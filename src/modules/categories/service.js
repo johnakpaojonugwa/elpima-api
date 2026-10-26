@@ -1,5 +1,6 @@
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../utils/AppError.js";
+import { cacheGet, cacheSet, cacheInvalidatePattern } from "../../config/redis.js";
 
 function slugify(text) {
   return text
@@ -12,9 +13,13 @@ function slugify(text) {
 }
 
 export async function listCategories({ includeInactive = false } = {}) {
+  const cacheKey = includeInactive ? "categories:all" : "categories:active";
+  const cached = await cacheGet(cacheKey);
+  if (cached) return cached;
+
   const where = includeInactive ? {} : { isActive: true };
 
-  return prisma.category.findMany({
+  const categories = await prisma.category.findMany({
     where,
     orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
     include: {
@@ -23,6 +28,9 @@ export async function listCategories({ includeInactive = false } = {}) {
       },
     },
   });
+
+  await cacheSet(cacheKey, categories, 300); // 5 min TTL
+  return categories;
 }
 
 export async function getCategoryBySlug(slug) {
@@ -104,6 +112,9 @@ export async function createCategory(input, actor) {
     },
   });
 
+  // Invalidate categories cache
+  await cacheInvalidatePattern("categories:");
+
   return category;
 }
 
@@ -138,6 +149,9 @@ export async function updateCategory(categoryId, input, actor) {
     },
   });
 
+  // Invalidate categories cache
+  await cacheInvalidatePattern("categories:");
+
   return category;
 }
 
@@ -169,6 +183,9 @@ export async function deleteCategory(categoryId, actor) {
       metadata: { name: category.name },
     },
   });
+
+  // Invalidate categories cache
+  await cacheInvalidatePattern("categories:");
 
   return category;
 }

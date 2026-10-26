@@ -66,10 +66,10 @@ export async function createManager(input, actor) {
     },
   });
 
-  // Asynchronously dispatch welcome email with credentials & 2FA guidance
+  // Enqueue welcome email with credentials & 2FA guidance via BullMQ
   if (manager.email) {
-    import("../../utils/mailer.js").then(({ sendManagerInviteEmail }) => {
-      sendManagerInviteEmail({
+    import("../../queues/index.js").then(({ queueManagerInviteEmail }) => {
+      queueManagerInviteEmail({
         toEmail: manager.email,
         recipientName: manager.fullName,
         temporaryPassword: input.password,

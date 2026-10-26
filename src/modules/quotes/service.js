@@ -86,15 +86,15 @@ export async function createQuote(input) {
     },
   });
 
-  // Asynchronously alert the sales desk / managers (fire-and-forget)
-  import("../../utils/notifications.js").then(({ notifySalesDesk }) => {
-    notifySalesDesk(quote).catch(() => {});
+  // Enqueue sales desk alert with automated retries via BullMQ
+  import("../../queues/index.js").then(({ queueSalesDeskNotification }) => {
+    queueSalesDeskNotification(quote).catch(() => {});
   });
 
-  // Asynchronously dispatch quote confirmation email if customer provided email
+  // Enqueue customer quote confirmation email via BullMQ
   if (quote.customerEmail) {
-    import("../../utils/mailer.js").then(({ sendQuoteConfirmationEmail }) => {
-      sendQuoteConfirmationEmail({ quote }).catch(() => {});
+    import("../../queues/index.js").then(({ queueQuoteConfirmationEmail }) => {
+      queueQuoteConfirmationEmail({ quote }).catch(() => {});
     });
   }
 

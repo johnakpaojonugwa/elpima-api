@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import hpp from "hpp";
+import compression from "compression";
 import morgan from "morgan";
 
 import { env } from "./config/env.js";
@@ -36,6 +37,9 @@ export function createApp() {
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN }));
   app.use(hpp());
+
+  // HTTP response compression (60-80% smaller JSON responses)
+  app.use(compression());
 
   // Body parsers
   app.use(express.json({ limit: "1mb" }));
