@@ -31,6 +31,8 @@ const envSchema = z.object({
   SUPABASE_STORAGE_ENDPOINT: z.string().url().optional(),
   SUPABASE_STORAGE_REGION: z.string().optional(),
   SALES_DESK_WEBHOOK_URL: z.string().url().optional().or(z.literal("")),
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().default("Elpima Surgicals <onboarding@resend.dev>"),
 });
 
 const parsed = envSchema.safeParse(process.env);

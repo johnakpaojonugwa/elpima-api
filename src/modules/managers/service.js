@@ -66,6 +66,18 @@ export async function createManager(input, actor) {
     },
   });
 
+  // Asynchronously dispatch welcome email with credentials & 2FA guidance
+  if (manager.email) {
+    import("../../utils/mailer.js").then(({ sendManagerInviteEmail }) => {
+      sendManagerInviteEmail({
+        toEmail: manager.email,
+        recipientName: manager.fullName,
+        temporaryPassword: input.password,
+        role: manager.role,
+      }).catch(() => {});
+    });
+  }
+
   return manager;
 }
 

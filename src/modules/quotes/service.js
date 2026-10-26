@@ -91,6 +91,13 @@ export async function createQuote(input) {
     notifySalesDesk(quote).catch(() => {});
   });
 
+  // Asynchronously dispatch quote confirmation email if customer provided email
+  if (quote.customerEmail) {
+    import("../../utils/mailer.js").then(({ sendQuoteConfirmationEmail }) => {
+      sendQuoteConfirmationEmail({ quote }).catch(() => {});
+    });
+  }
+
   return {
     reference: quote.reference,
     whatsappLink: quote.whatsappLink,
