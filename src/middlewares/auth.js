@@ -37,12 +37,22 @@ export async function requireAuth(request, _response, nextFunction) {
         fullName: true,
         role: true,
         isActive: true,
+        tokenVersion: true,
       },
     });
 
     if (!user || !user.isActive) {
       return nextFunction(
         new AppError(401, "Account has been deactivated or no longer exists", "account_deactivated")
+      );
+    }
+
+    // Security: Instant Global Revocation check
+    // If the tokenVersion in the JWT does not match the user's current tokenVersion in DB,
+    // this token was revoked (e.g. via logout, password change, or session hijack mitigation)!
+    if (payload.tokenVersion !== undefined && payload.tokenVersion !== user.tokenVersion) {
+      return nextFunction(
+        new AppError(401, "Session has been revoked or invalidated. Please log in again.", "token_revoked")
       );
     }
 

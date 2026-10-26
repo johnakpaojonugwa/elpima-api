@@ -82,4 +82,35 @@ describe("Auth Security & JWT Hardening", () => {
     // Verified that req.user gets the real DB role, NOT the forged claim from the token
     expect(req.user.role).toBe("SUPERVISING_MANAGER");
   });
+
+  it("should instantly invalidate an active access token if tokenVersion is incremented (Instant Revocation)", async () => {
+    // Attacker holds an unexpired access token with tokenVersion 0
+    const hijackedAccessToken = jwt.sign(
+      { sub: "admin-id", email: "admin@elpima.com", role: "SUPER_ADMIN", tokenVersion: 0 },
+      env.JWT_SECRET,
+      { algorithm: "HS256" }
+    );
+
+    // Database tokenVersion is now 1 (admin clicked 'logout all' or changed password)
+    vi.spyOn(prisma.user, "findUnique").mockResolvedValueOnce({
+      id: "admin-id",
+      email: "admin@elpima.com",
+      fullName: "Super Admin",
+      role: "SUPER_ADMIN",
+      isActive: true,
+      tokenVersion: 1, // Stolen token is instantly revoked!
+    });
+
+    const req = { headers: { authorization: `Bearer ${hijackedAccessToken}` } };
+    const res = {};
+    const next = vi.fn();
+
+    await requireAuth(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    const error = next.mock.calls[0][0];
+    expect(error.statusCode).toBe(401);
+    expect(error.kind).toBe("token_revoked");
+  });
 });
+

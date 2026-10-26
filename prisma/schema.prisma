@@ -50,14 +50,51 @@ model User {
   isActive     Boolean       @default(true)
   lastLoginAt  DateTime?
 
+  // Two-Factor Authentication (TOTP Authenticator App)
+  isTwoFactorEnabled   Boolean   @default(false)
+  twoFactorSecret      String?
+  twoFactorTempSecret  String?
+  twoFactorBackupCodes String[]  @default([])
+
+  // Password Reset
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+
+  // Instant Global JWT Invalidation Version
+  tokenVersion         Int       @default(0)
+
   assignedQuotes QuoteInquiry[]
   auditLogs      AuditLog[]
+  refreshTokens  RefreshToken[]
 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   @@index([role, isActive])
   @@map("users")
+}
+
+model RefreshToken {
+  id                String    @id @default(uuid())
+  tokenHash         String    @unique
+  familyId          String    @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fingerprintHash   String?   // SHA-256 of Client User-Agent + IP to detect session hijacking
+  lastUsedAt        DateTime  @default(now())
+  expiresAt         DateTime  // Rolling idle expiry (e.g. 2 hours inactivity)
+  absoluteExpiresAt DateTime  // Hard cap on total session length (e.g. 8 hours max)
+  isRevoked         Boolean   @default(false)
+  createdByIp       String?
+  userAgent         String?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId, isRevoked])
+  @@index([familyId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
 }
 
 // ------------------------------------------

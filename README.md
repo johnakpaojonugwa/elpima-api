@@ -78,10 +78,29 @@ npm run dev
 ### Health
 * `GET /health` — Service uptime and heartbeat
 
-### Authentication
-* `POST /api/v1/auth/login` — Super-Admin / Manager login (Rate-limited, returns JWT)
+### Authentication & Sessions
+* `POST /api/v1/auth/login` — Super-Admin / Manager login (Returns `accessToken`, `refreshToken`, or `requires2FA: true`)
+* `POST /api/v1/auth/refresh-token` — Rotate refresh token & receive new `accessToken` and `refreshToken` pair
+* `POST /api/v1/auth/logout` — Invalidate current refresh token and terminate session
+* `POST /api/v1/auth/logout-all` — Invalidate all refresh tokens across all devices for current user
+* `POST /api/v1/auth/forgot-password` — Request password reset email (Constant-time anti-enumeration)
+* `POST /api/v1/auth/reset-password` — Set new password with one-time reset token & revoke all sessions
+* `GET /api/v1/auth/sessions` — List all active logged-in devices/sessions for current user
+* `DELETE /api/v1/auth/sessions/:sessionId` — Remotely terminate a specific suspicious device session
 * `GET /api/v1/auth/me` — Get current authenticated actor profile
-* `POST /api/v1/auth/change-password` — Change password
+* `PATCH /api/v1/auth/me` — Update name or phone number
+* `POST /api/v1/auth/change-password` — Change password & revoke all sessions across other devices
+
+
+### Two-Factor Authentication (TOTP Authenticator App)
+* `POST /api/v1/auth/2fa/verify` — Complete 2FA login with 6-digit TOTP code or backup code
+* `GET /api/v1/auth/2fa/status` — Get 2FA enablement status & backup codes remaining
+* `POST /api/v1/auth/2fa/setup` — Initiate 2FA setup (Generates secret, QR code Data URL & 8 backup codes)
+* `POST /api/v1/auth/2fa/enable` — Confirm & activate 2FA with initial 6-digit code from authenticator app
+* `POST /api/v1/auth/2fa/disable` — Deactivate 2FA (Requires current password & valid 2FA code)
+* `POST /api/v1/auth/2fa/backup-codes` — Regenerate emergency recovery backup codes
+
+
 
 ### Products (Surgical Catalog)
 * `GET /api/v1/products` — Filter products by category, specialty, inStock, featured, search keywords
