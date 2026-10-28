@@ -1,5 +1,6 @@
 import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../utils/AppError.js";
+import { cacheGet, cacheSet, cacheInvalidatePattern } from "../../config/redis.js";
 
 function slugify(text) {
   return text
@@ -100,6 +101,19 @@ export async function listProducts({
 }
 
 export async function getProductBySlug(slug) {
+  const cacheKey = `products:slug:${slug}`;
+  const cached = await cacheGet(cacheKey);
+
+  if (cached) {
+    // Fire-and-forget view count increment
+    prisma.product.update({
+      where: { id: cached.id },
+      data: { viewCount: { increment: 1 } },
+    }).catch(() => {});
+
+    return cached;
+  }
+
   const product = await prisma.product.findUnique({
     where: { slug },
     include: {
@@ -115,6 +129,9 @@ export async function getProductBySlug(slug) {
   if (!product || !product.isActive) {
     throw new AppError(404, "Product not found or inactive", "product_not_found");
   }
+
+  // Cache for 10 minutes (600 seconds)
+  await cacheSet(cacheKey, product, 600);
 
   // Fire-and-forget view count increment
   prisma.product.update({
@@ -192,6 +209,8 @@ export async function createProduct(input, actor, clientInfo = {}) {
     },
   });
 
+  await cacheInvalidatePattern("products:");
+
   return product;
 }
 
@@ -243,6 +262,8 @@ export async function updateProduct(productId, input, actor, clientInfo = {}) {
     },
   });
 
+  await cacheInvalidatePattern("products:");
+
   return product;
 }
 
@@ -269,6 +290,8 @@ export async function toggleStock(productId, { inStock, leadTime }, actor, clien
     },
   });
 
+  await cacheInvalidatePattern("products:");
+
   return product;
 }
 
@@ -292,6 +315,8 @@ export async function deleteProduct(productId, actor, clientInfo = {}) {
       userAgent: clientInfo.userAgent || null,
     },
   });
+
+  await cacheInvalidatePattern("products:");
 
   return product;
 }

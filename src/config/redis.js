@@ -6,8 +6,22 @@ let redisClient = null;
 let redisConnectionOptions = null;
 let isRedisConnected = false;
 
-// In-memory fallback cache when Redis is not configured or in test environments
+// Bounded in-memory fallback cache when Redis is unavailable or in test mode
+const MAX_MEMORY_CACHE_ITEMS = 500;
 const memoryCache = new Map();
+
+// Periodic expired entries sweeper to avoid memory retention (unref'd so it doesn't block process exit)
+const cleanupTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of memoryCache.entries()) {
+    if (value.expiresAt && value.expiresAt < now) {
+      memoryCache.delete(key);
+    }
+  }
+}, 60 * 1000);
+if (cleanupTimer.unref) {
+  cleanupTimer.unref();
+}
 
 if (env.REDIS_URL && !isTest) {
   try {
@@ -30,6 +44,11 @@ if (env.REDIS_URL && !isTest) {
       logger.info("[Redis] Connection established successfully");
     });
 
+    redisClient.on("ready", () => {
+      isRedisConnected = true;
+      logger.info("[Redis] Client ready for commands");
+    });
+
     redisClient.on("error", (error) => {
       isRedisConnected = false;
       logger.warn(`[Redis] Connection warning: ${error.message}`);
@@ -42,6 +61,13 @@ if (env.REDIS_URL && !isTest) {
     logger.warn(`[Redis] Initialization warning: ${err.message}. Using in-memory fallback.`);
     redisClient = null;
   }
+}
+
+/**
+ * Return raw Redis client instance if initialized
+ */
+export function getRedisClient() {
+  return redisClient;
 }
 
 /**
@@ -109,7 +135,14 @@ export async function cacheSet(key, value, ttlSeconds = 300) {
     }
   }
 
-  // In-Memory Fallback
+  // In-Memory Fallback with bounded capacity
+  if (memoryCache.size >= MAX_MEMORY_CACHE_ITEMS) {
+    const oldestKey = memoryCache.keys().next().value;
+    if (oldestKey) {
+      memoryCache.delete(oldestKey);
+    }
+  }
+
   memoryCache.set(key, {
     data: value,
     expiresAt: Date.now() + ttlSeconds * 1000,

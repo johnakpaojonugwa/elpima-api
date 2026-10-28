@@ -33,4 +33,14 @@ describe("Caching Layer (Redis & Fallback)", () => {
     expect(await cacheGet("catalog:item2")).toBeNull();
     expect(await cacheGet("other:item3")).toBe("value3");
   });
+
+  it("handles bounded memory cache eviction under heavy write volumes", async () => {
+    // Fill up to bound
+    for (let i = 0; i < 505; i++) {
+      await cacheSet(`bound_test:${i}`, `val_${i}`, 60);
+    }
+
+    // Latest items must be present
+    expect(await cacheGet("bound_test:504")).toBe("val_504");
+  });
 });

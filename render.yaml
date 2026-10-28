@@ -51,3 +51,5 @@ services:
         value: eu-central-1
       - key: SALES_DESK_WEBHOOK_URL
         sync: false
+      - key: REDIS_URL
+        sync: false
