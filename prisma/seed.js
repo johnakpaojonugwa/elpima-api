@@ -1,10 +1,69 @@
+import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+function buildCandidateUrls() {
+  const candidates = [];
+  const dbUrl = process.env.DATABASE_URL;
+  const directUrl = process.env.DIRECT_URL;
+
+  if (dbUrl) {
+    candidates.push({ label: "DATABASE_URL (Transaction Pooler :6543)", url: dbUrl });
+
+    // Supabase IPv4 Session Pooler fallback on standard port 5432 (bypasses ISP port 6543 blocks)
+    if (dbUrl.includes(":6543")) {
+      const sessionPoolerUrl = dbUrl
+        .replace(":6543", ":5432")
+        .replace(/([?&])pgbouncer=true(&?)/, (_, p1, p2) => (p2 ? p1 : ""))
+        .replace(/[?&]$/, "");
+      candidates.push({
+        label: "Supabase IPv4 Session Pooler (:5432)",
+        url: sessionPoolerUrl,
+      });
+    }
+  }
+
+  if (directUrl && !candidates.some((c) => c.url === directUrl)) {
+    candidates.push({ label: "DIRECT_URL (:5432)", url: directUrl });
+  }
+
+  return candidates;
+}
+
+let prisma = new PrismaClient();
+
+async function ensureConnectedClient() {
+  const candidates = buildCandidateUrls();
+  let lastError = null;
+
+  for (const candidate of candidates) {
+    const client = new PrismaClient({
+      datasources: { db: { url: candidate.url } },
+    });
+    try {
+      console.log(`🔌 Connecting via ${candidate.label}...`);
+      await client.$connect();
+      console.log(`✅ Connected via ${candidate.label}`);
+      prisma = client;
+      return client;
+    } catch (err) {
+      lastError = err;
+      console.warn(`⚠️  Could not reach database via ${candidate.label}`);
+      await client.$disconnect().catch(() => {});
+    }
+  }
+
+  console.error("\n❌ All database connection attempts failed.");
+  console.error("👉 Troubleshooting checklist:");
+  console.error("   1. Open https://supabase.com/dashboard and check if your Supabase project is PAUSED (click 'Restore project' if paused).");
+  console.error("   2. Check your internet connection / VPN / firewall (ports 5432 and 6543).");
+  console.error("   3. In your .env file, try changing :6543 to :5432 on your pooler URL (Session Mode).\n");
+  throw lastError;
+}
 
 async function main() {
   console.log("🌱 Starting Elpima Surgicals database seeding (HAS Medical Stapler Catalog)...");
+  await ensureConnectedClient();
 
   // 1. Seed Store Settings
   await prisma.storeSetting.upsert({
@@ -55,7 +114,7 @@ async function main() {
   console.log("✅ Admin actors seeded (Super-Admin & Supervising Manager)");
 
   // Clear legacy products/categories/specialties if replacing catalog
-  await prisma.quoteItem.deleteMany({});
+  await prisma.quoteInquiryItem.deleteMany({});
   await prisma.quoteInquiry.deleteMany({});
   await prisma.product.deleteMany({});
   await prisma.category.deleteMany({});
