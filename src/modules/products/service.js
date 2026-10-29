@@ -2,6 +2,54 @@ import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import { cacheGet, cacheSet, cacheInvalidatePattern } from "../../config/redis.js";
 
+const CATEGORY_CODE_MAP = {
+  "endoscopic-powered-staplers": "END",
+  "open-linear-circular-staplers": "OPN",
+  "anorectal-urological-staplers": "SPC",
+  "wound-fascial-closure-systems": "CLS",
+  "laparoscopic-access-consumables": "LAP",
+};
+
+function deriveCategoryCode(category) {
+  if (!category) return "SRG";
+  if (CATEGORY_CODE_MAP[category.slug]) {
+    return CATEGORY_CODE_MAP[category.slug];
+  }
+  const prefixMatch = (category.description || "").match(/Prefix:\s*([A-Z]{3})/i);
+  if (prefixMatch) {
+    return prefixMatch[1].toUpperCase();
+  }
+  const letters = (category.name || "")
+    .replace(/[^a-zA-Z\s]/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (letters.length >= 3) {
+    return (letters[0][0] + letters[1][0] + letters[2][0]).toUpperCase();
+  }
+  return (category.name || "SRG").replace(/[^a-zA-Z]/g, "").slice(0, 3).toUpperCase().padEnd(3, "X");
+}
+
+function deriveDeviceCode(productName) {
+  const stopWords = new Set(["AND", "THE", "FOR", "WITH", "SYSTEM", "DISPOSABLE"]);
+  const words = (productName || "")
+    .replace(/[^a-zA-Z0-9\s]/g, "")
+    .toUpperCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 0 && !stopWords.has(w));
+
+  if (words.length >= 3) {
+    return `${words[0][0]}${words[1][0]}${words[2][0]}`;
+  }
+  if (words.length === 2) {
+    return `${words[0].slice(0, 2)}${words[1][0]}`.padEnd(3, "X");
+  }
+  if (words.length === 1) {
+    return words[0].slice(0, 3).padEnd(3, "X");
+  }
+  return "DEV";
+}
+
 function slugify(text) {
   return text
     .toString()
@@ -79,13 +127,18 @@ export async function listProducts({
         slug: true,
         sku: true,
         shortDescription: true,
+        description: true,
+        specifications: true,
         images: true,
         inStock: true,
         leadTime: true,
         isFeatured: true,
+        isActive: true,
         compliance: true,
         minOrderQuantity: true,
         viewCount: true,
+        categoryId: true,
+        specialtyId: true,
         category: {
           select: { id: true, name: true, slug: true },
         },
@@ -93,6 +146,7 @@ export async function listProducts({
           select: { id: true, name: true, slug: true },
         },
         createdAt: true,
+        updatedAt: true,
       },
     }),
   ]);
@@ -161,27 +215,44 @@ export async function createProduct(input, actor, clientInfo = {}) {
     throw new AppError(409, "A product with that slug already exists", "conflict");
   }
 
-  // Validate unique SKU if provided
-  if (input.sku) {
-    const existingSku = await prisma.product.findUnique({
-      where: { sku: input.sku },
-    });
-    if (existingSku) {
-      throw new AppError(409, "A product with that SKU already exists", "conflict");
-    }
+  // Auto-generate clinical SKU (ELP-[CATEGORY_CODE]-[DEVICE_CODE]-[MODEL_NUMBER]) if not provided
+  let normalizedSku = input.sku ? input.sku.trim().toUpperCase() : null;
+  if (!normalizedSku) {
+    const totalCount = await prisma.product.count();
+    const catCode = deriveCategoryCode(category);
+    const devCode = deriveDeviceCode(input.name);
+    const modelNum = String(totalCount + 1).padStart(3, "0");
+    normalizedSku = `ELP-${catCode}-${devCode}-${modelNum}`;
   }
+
+  // Validate unique SKU
+  const existingSku = await prisma.product.findUnique({
+    where: { sku: normalizedSku },
+  });
+  if (existingSku) {
+    throw new AppError(409, "A product with that SKU already exists", "conflict");
+  }
+
+  const defaultSpecifications =
+    input.specifications && Object.keys(input.specifications).length > 0
+      ? input.specifications
+      : {
+          "Model Reference": `${normalizedSku} — ${input.name}`,
+          Material: "Medical-Grade Titanium (Ti) & 316L Surgical Stainless Steel",
+          Sterilization: "Ethylene Oxide (EO) Sterile, Single-Use",
+        };
 
   const product = await prisma.product.create({
     data: {
       name: input.name,
       slug,
-      sku: input.sku,
+      sku: normalizedSku,
       categoryId: input.categoryId,
       specialtyId: input.specialtyId,
       shortDescription: input.shortDescription,
       description: input.description,
-      specifications: input.specifications,
-      compliance: input.compliance ?? [],
+      specifications: defaultSpecifications,
+      compliance: input.compliance ?? ["ISO 13485", "CE Mark", "NAFDAC Approved"],
       images: input.images,
       inStock: input.inStock ?? true,
       leadTime: input.leadTime,

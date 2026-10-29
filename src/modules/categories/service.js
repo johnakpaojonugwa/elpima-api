@@ -2,6 +2,34 @@ import { prisma } from "../../config/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import { cacheGet, cacheSet, cacheInvalidatePattern } from "../../config/redis.js";
 
+const CATEGORY_PREFIX_PRESETS = {
+  "endoscopic-powered-staplers": "END",
+  "open-linear-circular-staplers": "OPN",
+  "anorectal-urological-staplers": "SPC",
+  "wound-fascial-closure-systems": "CLS",
+  "laparoscopic-access-consumables": "LAP",
+};
+
+function deriveCategoryPrefix(name, slug, description) {
+  const existingMatch = (description || "").match(/Prefix:\s*([A-Z0-9]{3})/i);
+  if (existingMatch) return existingMatch[1].toUpperCase();
+  if (slug && CATEGORY_PREFIX_PRESETS[slug]) return CATEGORY_PREFIX_PRESETS[slug];
+
+  const words = (name || "")
+    .replace(/[^a-zA-Z\s]/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 1 && !["AND", "THE", "FOR", "OF"].includes(w.toUpperCase()));
+
+  if (words.length >= 3) {
+    return `${words[0][0]}${words[1][0]}${words[2][0]}`.toUpperCase();
+  }
+  if (words.length === 2) {
+    return `${words[0].slice(0, 2)}${words[1][0]}`.toUpperCase();
+  }
+  return (name || "CAT").replace(/[^a-zA-Z]/g, "").slice(0, 3).toUpperCase().padEnd(3, "X");
+}
+
 function slugify(text) {
   return text
     .toString()
@@ -88,13 +116,21 @@ export async function createCategory(input, actor) {
     throw new AppError(409, "A category with that name or slug already exists", "conflict");
   }
 
+  const prefix = deriveCategoryPrefix(input.name, slug, input.description);
+  const rawDesc = (input.description || "").trim();
+  const formattedDescription = /Prefix:\s*[A-Z0-9]{3}/i.test(rawDesc)
+    ? rawDesc
+    : rawDesc
+      ? `${rawDesc} (Prefix: ${prefix})`
+      : `Clinical surgical equipment category for ${input.name}. (Prefix: ${prefix})`;
+
   const category = await prisma.category.create({
     data: {
       name: input.name,
       slug,
-      description: input.description,
+      description: formattedDescription,
       imageUrl: input.imageUrl,
-      icon: input.icon,
+      icon: input.icon || prefix,
       displayOrder: input.displayOrder,
       isActive: input.isActive ?? true,
     },

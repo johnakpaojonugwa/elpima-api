@@ -42,10 +42,15 @@ export async function getDashboardStats() {
         id: true,
         reference: true,
         customerName: true,
-        hospitalName: true,
+        customerPhone: true,
+        hospitalClinic: true,
+        location: true,
         status: true,
         priority: true,
         createdAt: true,
+        items: {
+          select: { id: true },
+        },
       },
     }),
     prisma.auditLog.findMany({
