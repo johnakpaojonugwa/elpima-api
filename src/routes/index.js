@@ -10,6 +10,7 @@ import { auditRouter } from "../modules/audit/route.js";
 import { settingsRouter } from "../modules/settings/route.js";
 import { uploadRouter } from "../modules/upload/route.js";
 import { analyticsRouter } from "../modules/analytics/route.js";
+import { notificationsRouter } from "../modules/notifications/route.js";
 
 import { env } from "../config/env.js";
 
@@ -51,5 +52,6 @@ v1Router.use("/audit-logs", auditRouter);
 v1Router.use("/settings", settingsRouter);
 v1Router.use("/upload", uploadRouter);
 v1Router.use("/analytics", analyticsRouter);
+v1Router.use("/notifications", notificationsRouter);
 
 router.use("/api/v1", v1Router);

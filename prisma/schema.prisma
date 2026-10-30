@@ -36,6 +36,20 @@ enum Priority {
   URGENT
 }
 
+enum NotificationCategory {
+  GENERAL
+  SYSTEM
+}
+
+enum NotificationIconType {
+  QUOTE
+  URGENT
+  PRODUCT
+  MANAGER
+  SYSTEM_DB
+  SYSTEM_SHIELD
+}
+
 // ------------------------------------------
 // USERS & ACTORS
 // ------------------------------------------
@@ -66,6 +80,7 @@ model User {
   assignedQuotes QuoteInquiry[]
   auditLogs      AuditLog[]
   refreshTokens  RefreshToken[]
+  notifications  Notification[]
 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -265,4 +280,28 @@ model StoreSetting {
   updatedAt        DateTime @updatedAt
 
   @@map("store_settings")
+}
+
+// ------------------------------------------
+// IN-APP NOTIFICATIONS & SSE ALERTS
+// ------------------------------------------
+
+model Notification {
+  id          String               @id @default(uuid())
+  userId      String?              // If null, broadcast to all admin/manager accounts
+  user        User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    NotificationCategory @default(GENERAL)
+  iconType    NotificationIconType @default(QUOTE)
+  title       String
+  description String
+  isRead      Boolean              @default(false)
+  metadata    Json?
+
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([userId, isRead])
+  @@index([category, isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }

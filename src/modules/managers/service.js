@@ -78,6 +78,17 @@ export async function createManager(input, actor) {
     });
   }
 
+  // In-app notification for manager provisioning
+  import("../notifications/service.js").then(({ createNotification }) => {
+    createNotification({
+      category: "GENERAL",
+      iconType: "MANAGER",
+      title: "New Supervising Manager Provisioned",
+      description: `${manager.fullName} was provisioned as a Supervising Manager`,
+      metadata: { managerId: manager.id, email: manager.email, role: manager.role },
+    }).catch(() => {});
+  });
+
   return manager;
 }
 

@@ -7,12 +7,18 @@ import { AppError } from "../utils/AppError.js";
  * Middleware: Verify Bearer JWT (pinned to HS256) and ensure user is still active in DB
  */
 export async function requireAuth(request, _response, nextFunction) {
+  let token = null;
   const authHeader = request.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return nextFunction(new AppError(401, "Authentication token required", "unauthorized"));
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.split(" ")[1];
+  } else if (request.query && typeof request.query.token === "string" && request.query.token.trim()) {
+    // Support EventSource (SSE) which cannot send custom Authorization HTTP headers in browsers
+    token = request.query.token.trim();
   }
 
-  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return nextFunction(new AppError(401, "Authentication token required", "unauthorized"));
+  }
 
   let payload;
   try {

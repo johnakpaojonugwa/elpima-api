@@ -335,6 +335,19 @@ export async function updateProduct(productId, input, actor, clientInfo = {}) {
 
   await cacheInvalidatePattern("products:");
 
+  // In-app stock notification if stock status changed
+  if (input.inStock !== undefined && input.inStock !== existing.inStock) {
+    import("../notifications/service.js").then(({ createNotification }) => {
+      createNotification({
+        category: "GENERAL",
+        iconType: "PRODUCT",
+        title: "Equipment Stock Status Updated",
+        description: `${product.name} toggled to ${product.inStock ? "In Stock" : "Out of Stock"}`,
+        metadata: { productId: product.id, name: product.name, inStock: product.inStock },
+      }).catch(() => {});
+    });
+  }
+
   return product;
 }
 
@@ -362,6 +375,17 @@ export async function toggleStock(productId, { inStock, leadTime }, actor, clien
   });
 
   await cacheInvalidatePattern("products:");
+
+  // In-app stock notification
+  import("../notifications/service.js").then(({ createNotification }) => {
+    createNotification({
+      category: "GENERAL",
+      iconType: "PRODUCT",
+      title: "Equipment Stock Status Updated",
+      description: `${product.name} toggled to ${product.inStock ? "In Stock" : "Out of Stock"}`,
+      metadata: { productId: product.id, name: product.name, inStock: product.inStock },
+    }).catch(() => {});
+  });
 
   return product;
 }

@@ -91,6 +91,18 @@ export async function createQuote(input) {
     queueSalesDeskNotification(quote).catch(() => {});
   });
 
+  // Create real-time in-app notification for admin dashboard (SSE + Redis Pub/Sub)
+  import("../notifications/service.js").then(({ createNotification }) => {
+    const isUrgent = quote.priority === "URGENT";
+    createNotification({
+      category: "GENERAL",
+      iconType: isUrgent ? "URGENT" : "QUOTE",
+      title: isUrgent ? "Urgent Hospital RFQ Submitted" : "New Hospital RFQ Submitted",
+      description: `${quote.customerName} (${quote.hospitalClinic || "Clinic"}) requested a quote for ${quote.items.length} item(s) (${quote.reference})`,
+      metadata: { quoteId: quote.id, reference: quote.reference, priority: quote.priority },
+    }).catch(() => {});
+  });
+
   // Enqueue customer quote confirmation email via BullMQ
   if (quote.customerEmail) {
     import("../../queues/index.js").then(({ queueQuoteConfirmationEmail }) => {
@@ -211,6 +223,19 @@ export async function updateQuoteStatus(quoteId, { status, adminNotes }, actor) 
       metadata: { previousStatus: existing.status, newStatus: status, adminNotes },
     },
   });
+
+  // Real-time notification if quote marked as QUOTED or status changed
+  if (status === "QUOTED") {
+    import("../notifications/service.js").then(({ createNotification }) => {
+      createNotification({
+        category: "GENERAL",
+        iconType: "QUOTE",
+        title: "Proforma Quote Dispatched",
+        description: `${actor.fullName || "Staff"} marked ${quote.reference} as QUOTED for ${quote.customerName}`,
+        metadata: { quoteId: quote.id, reference: quote.reference, status },
+      }).catch(() => {});
+    });
+  }
 
   return quote;
 }
