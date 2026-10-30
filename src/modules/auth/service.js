@@ -697,6 +697,63 @@ export async function rotateRefreshToken(rawRefreshToken, clientInfo = {}) {
 
   // Reuse Detection: If an already-revoked refresh token is re-submitted, suspect token theft!
   if (tokenRecord.isRevoked) {
+    // Grace period window (e.g. 20s): allows concurrent SPA requests to succeed during rapid parallel calls or network jitter
+    const gracePeriodMs = (env.JWT_ROTATION_GRACE_PERIOD_SECONDS || 20) * 1000;
+    const lastRevocationTime = tokenRecord.lastUsedAt
+      ? new Date(tokenRecord.lastUsedAt).getTime()
+      : tokenRecord.updatedAt
+        ? new Date(tokenRecord.updatedAt).getTime()
+        : 0;
+
+    const timeSinceRevocation = Date.now() - lastRevocationTime;
+
+    if (lastRevocationTime > 0 && timeSinceRevocation >= 0 && timeSinceRevocation <= gracePeriodMs) {
+      // Find the successor active token issued for this family
+      const activeFamilyToken = await prisma.refreshToken.findFirst({
+        where: {
+          familyId: tokenRecord.familyId,
+          isRevoked: false,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (activeFamilyToken && tokenRecord.user && tokenRecord.user.isActive) {
+        // Return a fresh access token without invalidating the active session
+        const accessToken = jwt.sign(
+          {
+            sub: tokenRecord.user.id,
+            email: tokenRecord.user.email,
+            fullName: tokenRecord.user.fullName,
+            role: tokenRecord.user.role,
+            type: "access",
+            tokenVersion: tokenRecord.user.tokenVersion ?? 0,
+          },
+          env.JWT_SECRET,
+          {
+            algorithm: "HS256",
+            expiresIn: env.JWT_ACCESS_EXPIRES_IN || "10m",
+          }
+        );
+
+        return {
+          accessToken,
+          refreshToken: rawRefreshToken,
+          token: accessToken,
+          expiresIn: env.JWT_ACCESS_EXPIRES_IN || "10m",
+          user: {
+            id: tokenRecord.user.id,
+            email: tokenRecord.user.email,
+            fullName: tokenRecord.user.fullName,
+            role: tokenRecord.user.role,
+            phone: tokenRecord.user.phone,
+            isTwoFactorEnabled: tokenRecord.user.isTwoFactorEnabled,
+          },
+        };
+      }
+    }
+
+    // Outside grace period window: Genuine token theft or stale token reuse detected!
     // Revoke all existing sessions and increment tokenVersion immediately to kill active access tokens
     await prisma.refreshToken.updateMany({
       where: { userId: tokenRecord.userId },

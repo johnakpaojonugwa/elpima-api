@@ -33,10 +33,7 @@ export async function createQuote(input) {
     }
   }
 
-  // 3. Generate unique reference code
-  const reference = generateQuoteReference();
-
-  // 4. Prepare items snapshot
+  // 3. Prepare items snapshot
   const itemSnapshots = input.items.map((item) => {
     const product = productMap.get(item.productId);
     return {
@@ -48,43 +45,58 @@ export async function createQuote(input) {
     };
   });
 
-  // 5. Generate formatted WhatsApp URL
-  const whatsappLink = buildWhatsAppQuoteUrl({
-    reference,
-    customerName: input.customerName,
-    hospitalClinic: input.hospitalClinic,
-    location: input.location,
-    items: itemSnapshots,
-    customerNotes: input.customerNotes,
-    targetPhoneNumber: targetWhatsappNumber,
-  });
+  // 4. Save quote inquiry record in database with collision retry resilience
+  let quote = null;
+  const maxAttempts = 3;
 
-  // 6. Save quote inquiry record in database
-  const quote = await prisma.quoteInquiry.create({
-    data: {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const reference = generateQuoteReference();
+
+    const whatsappLink = buildWhatsAppQuoteUrl({
       reference,
       customerName: input.customerName,
-      customerPhone: input.customerPhone,
-      customerEmail: input.customerEmail || null,
-      hospitalClinic: input.hospitalClinic || null,
-      location: input.location || null,
-      priority: input.priority,
-      customerNotes: input.customerNotes || null,
-      whatsappLink,
-      items: {
-        create: itemSnapshots.map((item) => ({
-          productId: item.productId,
-          productName: item.productName,
-          productSku: item.productSku,
-          quantity: item.quantity,
-          customRequirement: item.customRequirement || null,
-        })),
-      },
-    },
-    include: {
-      items: true,
-    },
-  });
+      hospitalClinic: input.hospitalClinic,
+      location: input.location,
+      items: itemSnapshots,
+      customerNotes: input.customerNotes,
+      targetPhoneNumber: targetWhatsappNumber,
+    });
+
+    try {
+      quote = await prisma.quoteInquiry.create({
+        data: {
+          reference,
+          customerName: input.customerName,
+          customerPhone: input.customerPhone,
+          customerEmail: input.customerEmail || null,
+          hospitalClinic: input.hospitalClinic || null,
+          location: input.location || null,
+          priority: input.priority,
+          customerNotes: input.customerNotes || null,
+          whatsappLink,
+          items: {
+            create: itemSnapshots.map((item) => ({
+              productId: item.productId,
+              productName: item.productName,
+              productSku: item.productSku,
+              quantity: item.quantity,
+              customRequirement: item.customRequirement || null,
+            })),
+          },
+        },
+        include: {
+          items: true,
+        },
+      });
+      break;
+    } catch (err) {
+      if (err.code === "P2002" && attempt < maxAttempts) {
+        // Unique collision on reference; retry with a fresh reference code
+        continue;
+      }
+      throw err;
+    }
+  }
 
   // Enqueue sales desk alert with automated retries via BullMQ
   import("../../queues/index.js").then(({ queueSalesDeskNotification }) => {

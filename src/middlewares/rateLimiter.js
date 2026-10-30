@@ -67,3 +67,18 @@ export const quoteRateLimiter = rateLimit({
     nextFunction(new AppError(429, "You have submitted multiple quote requests. Please wait a few minutes before submitting another.", "quote_limit_exceeded"));
   },
 });
+
+/**
+ * Strict rate limiter for CPU-intensive PDF document generation and anti-harvesting
+ */
+export const pdfRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 25, // Max 25 PDF downloads per 15 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  passOnStoreError: true,
+  store: getRateLimitStore("pdf"),
+  handler: (_request, _response, nextFunction) => {
+    nextFunction(new AppError(429, "Too many PDF download requests. Please wait a few minutes.", "pdf_rate_limit_exceeded"));
+  },
+});

@@ -172,6 +172,39 @@ describe("Refresh Tokens & Password Recovery Lifecycle", () => {
         data: { isRevoked: true },
       });
     });
+
+    it("should allow a grace period window when a recently revoked refresh token is presented due to parallel requests", async () => {
+      const recentlyRevokedToken = "recently-revoked-token-race";
+      const tokenHash = crypto.createHash("sha256").update(recentlyRevokedToken).digest("hex");
+
+      vi.spyOn(prisma.refreshToken, "findUnique").mockResolvedValue({
+        id: "rt-just-revoked",
+        tokenHash,
+        familyId: "family-uuid-123",
+        userId: mockUser.id,
+        isRevoked: true,
+        lastUsedAt: new Date(Date.now() - 500), // 500ms ago (well within 20s grace window)
+        expiresAt: new Date(Date.now() + 86400000),
+        absoluteExpiresAt: new Date(Date.now() + 86400000),
+        user: { ...mockUser },
+      });
+
+      vi.spyOn(prisma.refreshToken, "findFirst").mockResolvedValue({
+        id: "rt-newest-in-family",
+        familyId: "family-uuid-123",
+        userId: mockUser.id,
+        isRevoked: false,
+        expiresAt: new Date(Date.now() + 86400000),
+      });
+
+      const revokeAllSpy = vi.spyOn(prisma.refreshToken, "updateMany");
+
+      const result = await authService.rotateRefreshToken(recentlyRevokedToken);
+
+      expect(result.accessToken).toBeDefined();
+      expect(result.user.id).toBe(mockUser.id);
+      expect(revokeAllSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe("Password Recovery (Forgot & Reset Password)", () => {

@@ -3,9 +3,9 @@ import { buildWhatsAppQuoteUrl } from "../src/utils/whatsapp.js";
 import { generateQuoteReference } from "../src/utils/reference.js";
 
 describe("Quote & WhatsApp Deep-link Engine", () => {
-  it("should generate a valid reference code formatted as ELP-YYYYMM-XXXXX", () => {
+  it("should generate a valid reference code formatted as ELP-YYYYMM-XXXXXX", () => {
     const ref = generateQuoteReference();
-    expect(ref).toMatch(/^ELP-\d{6}-[A-Z0-9]{5}$/);
+    expect(ref).toMatch(/^ELP-\d{6}-[A-Z0-9]{6}$/);
   });
 
   it("should generate a valid WhatsApp URL with items, quantities, and customer details", () => {

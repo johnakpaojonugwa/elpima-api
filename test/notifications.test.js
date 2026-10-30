@@ -251,10 +251,11 @@ describe("Notifications Module & Real-time SSE", () => {
       mockReq.emit("close");
     });
 
-    it("requireAuth extracts token from ?token= query parameter for EventSource SSE compatibility", async () => {
+    it("requireAuth extracts token from ?token= query parameter for EventSource SSE compatibility on stream route", async () => {
       const { requireAuth } = await import("../src/middlewares/auth.js");
       const req = {
         headers: {},
+        path: "/stream",
         query: { token: validToken },
       };
       const res = {};
@@ -264,6 +265,23 @@ describe("Notifications Module & Real-time SSE", () => {
       expect(next).toHaveBeenCalledWith();
       expect(req.user).toBeDefined();
       expect(req.user.id).toBe(mockUser.id);
+    });
+
+    it("requireAuth rejects ?token= query parameter on non-stream routes to prevent token leakage in URL logs", async () => {
+      const { requireAuth } = await import("../src/middlewares/auth.js");
+      const req = {
+        headers: {},
+        path: "/quotes",
+        query: { token: validToken },
+      };
+      const res = {};
+      const next = vi.fn();
+
+      await requireAuth(req, res, next);
+      expect(next).toHaveBeenCalledTimes(1);
+      const error = next.mock.calls[0][0];
+      expect(error.statusCode).toBe(401);
+      expect(error.message).toContain("Authentication token required");
     });
   });
 });

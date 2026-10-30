@@ -11,8 +11,13 @@ export async function requireAuth(request, _response, nextFunction) {
   const authHeader = request.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
     token = authHeader.split(" ")[1];
-  } else if (request.query && typeof request.query.token === "string" && request.query.token.trim()) {
-    // Support EventSource (SSE) which cannot send custom Authorization HTTP headers in browsers
+  } else if (
+    request.query &&
+    typeof request.query.token === "string" &&
+    request.query.token.trim() &&
+    (request.path?.endsWith("/stream") || request.originalUrl?.includes("/stream") || request.headers.accept?.includes("text/event-stream"))
+  ) {
+    // Strictly restrict query parameter token extraction to SSE streams (EventSource does not support custom headers)
     token = request.query.token.trim();
   }
 

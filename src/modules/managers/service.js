@@ -105,9 +105,20 @@ export async function updateManagerStatus(managerId, { isActive }, actor) {
     throw new AppError(400, "Super-Admin cannot be deactivated", "bad_request");
   }
 
+  // Security: If deactivating manager, revoke all refresh tokens and increment tokenVersion immediately
+  if (!isActive) {
+    await prisma.refreshToken.updateMany({
+      where: { userId: managerId, isRevoked: false },
+      data: { isRevoked: true },
+    });
+  }
+
   const updated = await prisma.user.update({
     where: { id: managerId },
-    data: { isActive },
+    data: {
+      isActive,
+      ...(!isActive ? { tokenVersion: { increment: 1 } } : {}),
+    },
     select: {
       id: true,
       fullName: true,
@@ -191,6 +202,12 @@ export async function updateManager(managerId, input, actor, clientInfo = {}) {
   let passwordHash;
   if (input.password) {
     passwordHash = await bcrypt.hash(input.password, 12);
+
+    // Security: Revoke all existing refresh tokens if password was changed
+    await prisma.refreshToken.updateMany({
+      where: { userId: managerId, isRevoked: false },
+      data: { isRevoked: true },
+    });
   }
 
   const updated = await prisma.user.update({
@@ -199,7 +216,7 @@ export async function updateManager(managerId, input, actor, clientInfo = {}) {
       ...(input.fullName ? { fullName: input.fullName } : {}),
       ...(input.email ? { email: input.email } : {}),
       ...(input.phone !== undefined ? { phone: input.phone } : {}),
-      ...(passwordHash ? { passwordHash } : {}),
+      ...(passwordHash ? { passwordHash, tokenVersion: { increment: 1 } } : {}),
     },
     select: {
       id: true,

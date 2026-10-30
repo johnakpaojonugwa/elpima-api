@@ -6,6 +6,19 @@ import { logger } from "./logger.js";
 export const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
 /**
+ * Escape HTML characters to protect transactional emails against HTML/script injection
+ */
+export function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
  * Base email layout wrapper with responsive, premium surgical styling
  */
 function renderEmailLayout({ title, previewText, bodyContent }) {
@@ -255,11 +268,12 @@ export async function sendEmail({ to, subject, html, text, replyTo }) {
  */
 export async function sendPasswordResetEmail({ toEmail, recipientName, resetToken }) {
   const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(toEmail)}`;
+  const safeName = escapeHtml(recipientName || "there");
 
   const bodyContent = `
     <h2>Password Reset Request</h2>
-    <p>Hello ${recipientName || "there"},</p>
-    <p>We received a request to reset your password for your <strong>${env.COMPANY_NAME}</strong> administrative account.</p>
+    <p>Hello ${safeName},</p>
+    <p>We received a request to reset your password for your <strong>${escapeHtml(env.COMPANY_NAME)}</strong> administrative account.</p>
     
     <div class="alert-box">
       <strong>Security Notice:</strong> This password reset link is valid for <strong>15 minutes</strong> and can only be used once.
@@ -301,14 +315,20 @@ export async function sendPasswordResetEmail({ toEmail, recipientName, resetToke
 export async function sendQuoteConfirmationEmail({ quote }) {
   if (!quote.customerEmail) return { success: false, reason: "No email provided" };
 
+  const safeCustomerName = escapeHtml(quote.customerName);
+  const safeReference = escapeHtml(quote.reference);
+  const safeHospitalClinic = escapeHtml(quote.hospitalClinic || "Private Practice");
+  const safePriority = escapeHtml(quote.priority || "STANDARD");
+  const safeCustomerPhone = escapeHtml(quote.customerPhone);
+
   const itemsRows = (quote.items || [])
     .map(
       (item, index) => `
       <tr>
         <td>${index + 1}</td>
-        <td><strong>${item.productName}</strong> ${item.productSku ? `<br><span style="font-size: 12px; color: #64748b;">SKU: ${item.productSku}</span>` : ""}</td>
-        <td style="text-align: center;">${item.quantity}</td>
-        <td>${item.customRequirement || "Standard Specification"}</td>
+        <td><strong>${escapeHtml(item.productName)}</strong> ${item.productSku ? `<br><span style="font-size: 12px; color: #64748b;">SKU: ${escapeHtml(item.productSku)}</span>` : ""}</td>
+        <td style="text-align: center;">${Number(item.quantity) || 1}</td>
+        <td>${escapeHtml(item.customRequirement || "Standard Specification")}</td>
       </tr>
     `
     )
@@ -316,12 +336,12 @@ export async function sendQuoteConfirmationEmail({ quote }) {
 
   const bodyContent = `
     <h2>Quote Inquiry Received</h2>
-    <p>Dear ${quote.customerName},</p>
-    <p>Thank you for reaching out to <strong>${env.COMPANY_NAME}</strong>. We have received your Request for Quotation (RFQ) and our clinical sales team is reviewing your requirements.</p>
+    <p>Dear ${safeCustomerName},</p>
+    <p>Thank you for reaching out to <strong>${escapeHtml(env.COMPANY_NAME)}</strong>. We have received your Request for Quotation (RFQ) and our clinical sales team is reviewing your requirements.</p>
     
     <div class="alert-box">
-      <strong>Quote Reference:</strong> <span style="font-family: monospace; font-size: 15px; font-weight: bold;">${quote.reference}</span><br>
-      <strong>Priority:</strong> ${quote.priority || "STANDARD"} &bull; <strong>Clinic/Hospital:</strong> ${quote.hospitalClinic || "Private Practice"}
+      <strong>Quote Reference:</strong> <span style="font-family: monospace; font-size: 15px; font-weight: bold;">${safeReference}</span><br>
+      <strong>Priority:</strong> ${safePriority} &bull; <strong>Clinic/Hospital:</strong> ${safeHospitalClinic}
     </div>
 
     <div class="table-container">
@@ -342,14 +362,14 @@ export async function sendQuoteConfirmationEmail({ quote }) {
 
     ${quote.whatsappLink ? `
       <div class="btn-container">
-        <a href="${quote.whatsappLink}" class="btn" style="background-color: #22c55e;" target="_blank" rel="noopener noreferrer">
+        <a href="${escapeHtml(quote.whatsappLink)}" class="btn" style="background-color: #22c55e;" target="_blank" rel="noopener noreferrer">
           Chat Directly on WhatsApp
         </a>
       </div>
     ` : ""}
 
     <p style="font-size: 14px; color: #475569;">
-      Our clinical sales desk will reach out via WhatsApp or phone (<strong>${quote.customerPhone}</strong>) with official availability and formal pricing.
+      Our clinical sales desk will reach out via WhatsApp or phone (<strong>${safeCustomerPhone}</strong>) with official availability and formal pricing.
     </p>
   `;
 
@@ -370,17 +390,21 @@ export async function sendQuoteConfirmationEmail({ quote }) {
  */
 export async function sendManagerInviteEmail({ toEmail, recipientName, temporaryPassword, role }) {
   const loginUrl = `${env.FRONTEND_URL}/admin/login`;
+  const safeName = escapeHtml(recipientName);
+  const safeRole = escapeHtml(role);
+  const safeEmail = escapeHtml(toEmail);
+  const safePassword = escapeHtml(temporaryPassword);
 
   const bodyContent = `
-    <h2>Welcome to the ${env.COMPANY_NAME} Management Portal</h2>
-    <p>Hello ${recipientName},</p>
-    <p>An administrative account has been created for you with the role of <strong>${role}</strong>.</p>
+    <h2>Welcome to the ${escapeHtml(env.COMPANY_NAME)} Management Portal</h2>
+    <p>Hello ${safeName},</p>
+    <p>An administrative account has been created for you with the role of <strong>${safeRole}</strong>.</p>
 
     <div class="alert-box">
       <strong>Your Account Credentials:</strong><br>
       <strong>Portal URL:</strong> <a href="${loginUrl}">${loginUrl}</a><br>
-      <strong>Email:</strong> ${toEmail}<br>
-      <strong>Temporary Password:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 14px;">${temporaryPassword}</code>
+      <strong>Email:</strong> ${safeEmail}<br>
+      <strong>Temporary Password:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 14px;">${safePassword}</code>
     </div>
 
     <div class="warning-box">
@@ -410,22 +434,25 @@ export async function sendManagerInviteEmail({ toEmail, recipientName, temporary
  * Dispatch 2FA Security Alert
  */
 export async function sendTwoFactorSecurityAlert({ toEmail, recipientName, action }) {
+  const safeName = escapeHtml(recipientName || "there");
+  const safeAction = escapeHtml(action);
+
   const actionText = {
     ENABLED: "Two-Factor Authentication has been successfully enabled on your account.",
     DISABLED: "Warning: Two-Factor Authentication has been disabled on your account.",
     BACKUP_REGENERATED: "Your two-factor emergency backup codes were newly regenerated.",
-  }[action] || `Your two-factor authentication settings were updated (${action}).`;
+  }[action] || `Your two-factor authentication settings were updated (${safeAction}).`;
 
   const isWarning = action === "DISABLED";
 
   const bodyContent = `
     <h2>Security Alert: 2FA Settings Changed</h2>
-    <p>Hello ${recipientName || "there"},</p>
+    <p>Hello ${safeName},</p>
     <p>${actionText}</p>
 
     <div class="${isWarning ? "warning-box" : "alert-box"}">
       <strong>Timestamp:</strong> ${new Date().toUTCString()}<br>
-      <strong>Status:</strong> ${action}
+      <strong>Status:</strong> ${safeAction}
     </div>
 
     <p style="font-size: 14px; color: #475569;">

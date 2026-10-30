@@ -27,8 +27,13 @@ export async function uploadImage(file) {
     throw new AppError(400, "No image file provided", "bad_request");
   }
 
-  // Generate unique filename with original extension
-  const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+  // Security: Derive extension strictly from validated MIME type to prevent MIME-confusion / Stored HTML upload
+  const MIME_EXTENSION_MAP = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+  };
+  const ext = MIME_EXTENSION_MAP[file.mimetype] || ".jpg";
   const uniqueName = `surgical-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${ext}`;
 
   // If Supabase Storage is configured, upload to bucket

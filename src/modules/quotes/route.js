@@ -8,7 +8,7 @@ import {
 } from "./validation.js";
 import { validate } from "../../middlewares/validate.js";
 import { requireAuth, requireRole } from "../../middlewares/auth.js";
-import { quoteRateLimiter } from "../../middlewares/rateLimiter.js";
+import { quoteRateLimiter, pdfRateLimiter } from "../../middlewares/rateLimiter.js";
 import { idempotency } from "../../middlewares/idempotency.js";
 import { ROLES } from "../../constants/roles.js";
 
@@ -41,6 +41,7 @@ quotesRouter.get(
 
 quotesRouter.get(
   "/:reference/pdf",
+  pdfRateLimiter,
   quoteController.downloadQuotePdf
 );
 

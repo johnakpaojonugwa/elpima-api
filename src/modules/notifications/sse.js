@@ -90,30 +90,56 @@ localEventBus.on("broadcast", (payload) => {
 });
 
 /**
- * Publish notification event to Redis and local bus
+ * Publish notification event to Redis (or fallback to local event bus if Redis is not ready)
  */
 export async function broadcastNotification(notification) {
   const serialized = JSON.stringify(notification);
-
-  // Dispatch via local event bus
-  localEventBus.emit("broadcast", notification);
-
-  // Publish to Redis if connected
   const redisPublisher = getRedisClient();
+
+  // If Redis is ready, publish to Redis channel ONLY.
+  // The Redis subscriber on every instance (including this one) will receive and dispatch it once.
   if (isRedisReady() && redisPublisher) {
     try {
       await redisPublisher.publish(NOTIFICATION_CHANNEL, serialized);
+      return;
     } catch (err) {
-      logger.warn(`[SSE:Redis] Failed to publish notification to channel: ${err.message}`);
+      logger.warn(`[SSE:Redis] Failed to publish notification to channel: ${err.message}. Using local fallback.`);
     }
   }
+
+  // Fallback: dispatch via local event bus if Redis is offline or unconfigured
+  localEventBus.emit("broadcast", notification);
 }
+
+const MAX_CONNECTIONS_PER_USER = 5;
 
 /**
  * Register SSE connection for an authenticated client
  */
 export function handleSSEConnection(request, response) {
   const user = request.user;
+
+  // Resource guard: prevent connection exhaustion by capping concurrent streams per user
+  let userActiveConnections = 0;
+  for (const client of clients.values()) {
+    if (client.user?.id === user.id) {
+      userActiveConnections++;
+    }
+  }
+
+  if (userActiveConnections >= MAX_CONNECTIONS_PER_USER) {
+    response.writeHead(429, { "Content-Type": "application/json" });
+    return response.end(
+      JSON.stringify({
+        success: false,
+        error: {
+          message: `Maximum concurrent notification streams (${MAX_CONNECTIONS_PER_USER}) exceeded for this user account.`,
+          kind: "connection_limit_exceeded",
+        },
+      })
+    );
+  }
+
   const connectionId = `${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
   // Set headers required for Server-Sent Events

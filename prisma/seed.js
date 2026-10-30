@@ -83,12 +83,38 @@ async function main() {
   console.log("✅ Store settings initialized");
 
   // 2. Seed Super-Admin and Supervising Manager
-  const adminPasswordHash = await bcrypt.hash("AdminPassword123!", 12);
-  const managerPasswordHash = await bcrypt.hash("ManagerPassword123!", 12);
+  const isProduction = process.env.NODE_ENV === "production";
 
+  // In production, never fallback to predictable default passwords
+  let adminPlainPassword = process.env.INITIAL_ADMIN_PASSWORD;
+  let managerPlainPassword = process.env.INITIAL_MANAGER_PASSWORD;
+
+  if (isProduction) {
+    if (!adminPlainPassword) {
+      const crypto = await import("node:crypto");
+      adminPlainPassword = crypto.randomBytes(14).toString("base64url") + "!9A";
+      console.warn("⚠️  [Production Security] INITIAL_ADMIN_PASSWORD not set in environment.");
+      console.warn(`🔐 Generated temporary Super-Admin password: ${adminPlainPassword}`);
+    }
+    if (!managerPlainPassword) {
+      const crypto = await import("node:crypto");
+      managerPlainPassword = crypto.randomBytes(14).toString("base64url") + "!9M";
+      console.warn("⚠️  [Production Security] INITIAL_MANAGER_PASSWORD not set in environment.");
+      console.warn(`🔐 Generated temporary Supervising Manager password: ${managerPlainPassword}`);
+    }
+  } else {
+    // Development / test local defaults
+    adminPlainPassword = adminPlainPassword || "AdminPassword123!";
+    managerPlainPassword = managerPlainPassword || "ManagerPassword123!";
+  }
+
+  const adminPasswordHash = await bcrypt.hash(adminPlainPassword, 12);
+  const managerPasswordHash = await bcrypt.hash(managerPlainPassword, 12);
+
+  // Upsert ensures existing accounts and user-modified passwords are NEVER overwritten
   const superAdmin = await prisma.user.upsert({
     where: { email: "admin@elpimasurgicals.com" },
-    update: {},
+    update: {}, // Empty update: preserves user's current password if already exists
     create: {
       email: "admin@elpimasurgicals.com",
       fullName: "Super Admin",
@@ -101,7 +127,7 @@ async function main() {
 
   const supervisingManager = await prisma.user.upsert({
     where: { email: "manager@elpimasurgicals.com" },
-    update: {},
+    update: {}, // Empty update: preserves user's current password if already exists
     create: {
       email: "manager@elpimasurgicals.com",
       fullName: "Supervising Manager",
@@ -111,7 +137,16 @@ async function main() {
       isActive: true,
     },
   });
-  console.log("✅ Admin actors seeded (Super-Admin & Supervising Manager)");
+  console.log("✅ Admin actors verified/seeded (Super-Admin & Supervising Manager)");
+
+  // In production, guard against accidental catalog wipe unless explicitly requested
+  if (isProduction && process.env.FORCE_CATALOG_RESEED !== "true") {
+    const existingProductsCount = await prisma.product.count();
+    if (existingProductsCount > 0) {
+      console.log(`ℹ️  [Production Safety] Existing catalog detected (${existingProductsCount} products). Skipping product wipe to protect live inquiries.`);
+      return;
+    }
+  }
 
   // Clear legacy products/categories/specialties if replacing catalog
   await prisma.quoteInquiryItem.deleteMany({});

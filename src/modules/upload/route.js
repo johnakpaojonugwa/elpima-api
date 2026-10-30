@@ -8,7 +8,10 @@ import { ROLES } from "../../constants/roles.js";
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // Max 5MB per image
+    fileSize: 5 * 1024 * 1024, // Strictly enforce maximum 5MB per image file
+    files: 10,                 // Maximum 10 images per batch upload
+    fields: 10,                // Maximum 10 metadata fields
+    fieldSize: 1024 * 1024,    // Maximum 1MB for non-file text fields
   },
   fileFilter: (_request, file, callback) => {
     const allowedMimes = ["image/jpeg", "image/png", "image/webp"];

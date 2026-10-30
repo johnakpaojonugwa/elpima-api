@@ -26,6 +26,21 @@ export function errorHandler(error, request, response, _nextFunction) {
     message = error.message;
     kind = error.kind;
     details = error.details;
+  } else if (error.name === "MulterError") {
+    if (error.code === "LIMIT_FILE_SIZE") {
+      statusCode = 413;
+      message = "File size exceeds the allowable limit of 5MB per image";
+      kind = "file_too_large";
+    } else if (error.code === "LIMIT_FILE_COUNT") {
+      statusCode = 400;
+      message = "Too many files uploaded in a single request (maximum 10 images)";
+      kind = "too_many_files";
+    } else {
+      statusCode = 400;
+      message = `File upload error: ${error.message}`;
+      kind = "upload_error";
+    }
+    details = { field: error.field, code: error.code };
   } else if (error.name === "ZodError") {
     statusCode = 422;
     message = "Request validation failed";

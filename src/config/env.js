@@ -14,6 +14,7 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default("8h"),
   JWT_IDLE_TIMEOUT_MINUTES: z.coerce.number().default(120),
   JWT_MAX_SESSION_HOURS: z.coerce.number().default(8),
+  JWT_ROTATION_GRACE_PERIOD_SECONDS: z.coerce.number().default(20),
   FRONTEND_URL: z.string().default("http://localhost:3000"),
   DEFAULT_WHATSAPP_NUMBER: z.string().default("2348000000000"),
   COMPANY_NAME: z.string().default("Elpima Surgicals Limited"),

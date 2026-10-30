@@ -1,6 +1,6 @@
 import { customAlphabet } from "nanoid";
 
-const nanoid = customAlphabet("23456789ABCDEFGHJKLMNPQRSTUVWXYZ", 5);
+const nanoid = customAlphabet("23456789ABCDEFGHJKLMNPQRSTUVWXYZ", 6);
 
 /**
  * Generate human-friendly quote reference (e.g., ELP-202610-K82W)

@@ -1,5 +1,7 @@
 import { Router } from "express";
 import * as settingsController from "./controller.js";
+import { updateSettingsSchema } from "./validation.js";
+import { validate } from "../../middlewares/validate.js";
 import { requireAuth, requireRole } from "../../middlewares/auth.js";
 import { ROLES } from "../../constants/roles.js";
 
@@ -13,5 +15,6 @@ settingsRouter.put(
   "/",
   requireAuth,
   requireRole(ROLES.SUPER_ADMIN),
+  validate(updateSettingsSchema),
   settingsController.updateSettings
 );
