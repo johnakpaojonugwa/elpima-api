@@ -24,12 +24,29 @@ export function idempotency(request, response, nextFunction) {
 
   const cached = idempotencyCache.get(key);
   if (cached) {
+    // Concurrency guard: if initial request is still being processed, reject duplicate attempt
+    if (cached.status === "IN_FLIGHT") {
+      return response.status(409).json({
+        success: false,
+        error: {
+          message: "A request with this idempotency key is currently processing. Please wait.",
+          kind: "idempotency_conflict",
+        },
+      });
+    }
+
     // Return cached response with header indication
     response.setHeader("X-Cache-Lookup", "HIT-IDEMPOTENT");
     return response.status(cached.status).json(cached.body);
   }
 
-  // Intercept json output to save to cache
+  // Mark idempotency key as in-flight
+  idempotencyCache.set(key, {
+    status: "IN_FLIGHT",
+    timestamp: Date.now(),
+  });
+
+  // Intercept json output to save final response or clear lock on error
   const originalJson = response.json.bind(response);
   response.json = (responseBody) => {
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -44,6 +61,9 @@ export function idempotency(request, response, nextFunction) {
         body: responseBody,
         timestamp: Date.now(),
       });
+    } else {
+      // If request failed (e.g. 4xx/5xx), remove in-flight lock to allow clean retry
+      idempotencyCache.delete(key);
     }
     return originalJson(responseBody);
   };

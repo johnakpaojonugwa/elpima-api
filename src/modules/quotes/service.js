@@ -341,7 +341,7 @@ export async function deleteQuote(quoteId, actor, clientInfo = {}) {
       actorRole: actor.role,
       action: "DELETE_QUOTE",
       entityType: "quote",
-      entityId: id,
+      entityId: quoteId,
       metadata: { reference: quote.reference, customerName: quote.customerName },
       ipAddress: clientInfo.ip || null,
       userAgent: clientInfo.userAgent || null,

@@ -14,14 +14,14 @@ import {
 } from "./validation.js";
 import { validate } from "../../middlewares/validate.js";
 import { requireAuth } from "../../middlewares/auth.js";
-import { authRateLimiter } from "../../middlewares/rateLimiter.js";
+import { authRateLimiter, refreshTokenRateLimiter } from "../../middlewares/rateLimiter.js";
 
 export const authRouter = Router();
 
 // Core authentication & token rotation
 authRouter.post("/login", authRateLimiter, validate(loginSchema), authController.login);
 authRouter.post("/2fa/verify", authRateLimiter, validate(verify2FASchema), authController.verify2FALogin);
-authRouter.post("/refresh-token", authRateLimiter, validate(refreshTokenSchema), authController.refreshToken);
+authRouter.post("/refresh-token", refreshTokenRateLimiter, validate(refreshTokenSchema), authController.refreshToken);
 
 // Password recovery
 authRouter.post("/forgot-password", authRateLimiter, validate(forgotPasswordSchema), authController.forgotPassword);

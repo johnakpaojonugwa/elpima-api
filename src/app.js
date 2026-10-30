@@ -42,7 +42,14 @@ export function createApp() {
 
   // Security headers
   app.use(helmet());
-  app.use(cors({ origin: env.CORS_ORIGIN }));
+  const allowedOrigins = env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean);
+  app.use(
+    cors({
+      origin: allowedOrigins.includes("*") ? true : allowedOrigins,
+      credentials: true,
+      exposedHeaders: ["Content-Disposition", "X-Request-Id"],
+    })
+  );
   app.use(hpp());
 
   // HTTP response compression (60-80% smaller JSON responses)

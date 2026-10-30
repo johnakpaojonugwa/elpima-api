@@ -38,6 +38,10 @@ export async function requireAuth(request, _response, nextFunction) {
     return nextFunction(new AppError(401, "Invalid authentication token", "unauthorized"));
   }
 
+  if (!payload || !payload.sub || typeof payload.sub !== "string") {
+    return nextFunction(new AppError(401, "Invalid authentication token claims", "unauthorized"));
+  }
+
   // Security: Check database to ensure account hasn't been deactivated since token issuance
   try {
     const user = await prisma.user.findUnique({

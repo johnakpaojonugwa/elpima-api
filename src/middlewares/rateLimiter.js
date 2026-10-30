@@ -54,6 +54,22 @@ export const authRateLimiter = rateLimit({
 });
 
 /**
+ * Dedicated rate limiter for refresh token rotation
+ * Accommodates background SPA token renewals and multi-tab workflows
+ */
+export const refreshTokenRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120, // Max 120 attempts per 15 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  passOnStoreError: true,
+  store: getRateLimitStore("refresh"),
+  handler: (_request, _response, nextFunction) => {
+    nextFunction(new AppError(429, "Too many token refresh attempts. Please wait a few minutes or log in again.", "refresh_throttled"));
+  },
+});
+
+/**
  * Public quote / inquiry rate limiter (prevents spam inquiries)
  */
 export const quoteRateLimiter = rateLimit({
