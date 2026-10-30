@@ -19,7 +19,7 @@ function deriveCategoryPrefix(name, slug, description) {
     .replace(/[^a-zA-Z\s]/g, "")
     .trim()
     .split(/\s+/)
-    .filter((w) => w.length > 1 && !["AND", "THE", "FOR", "OF"].includes(w.toUpperCase()));
+    .filter((word) => word.length > 1 && !["AND", "THE", "FOR", "OF"].includes(word.toUpperCase()));
 
   if (words.length >= 3) {
     return `${words[0][0]}${words[1][0]}${words[2][0]}`.toUpperCase();

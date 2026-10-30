@@ -46,13 +46,13 @@ if (env.REDIS_URL && !isTest) {
       logger.info(`[BullMQ:NotificationWorker] Job ${job.id} (${job.name}) completed successfully`);
     });
 
-    notificationWorker.on("failed", (job, err) => {
-      logger.error(`[BullMQ:NotificationWorker] Job ${job?.id} (${job?.name}) failed: ${err.message}`, {
+    notificationWorker.on("failed", (job, error) => {
+      logger.error(`[BullMQ:NotificationWorker] Job ${job?.id} (${job?.name}) failed: ${error.message}`, {
         attemptsMade: job?.attemptsMade,
       });
     });
-  } catch (err) {
-    logger.warn(`[BullMQ:NotificationWorker] Failed to initialize Redis queue: ${err.message}. Using direct fallback.`);
+  } catch (error) {
+    logger.warn(`[BullMQ:NotificationWorker] Failed to initialize Redis queue: ${error.message}. Using direct fallback.`);
     notificationQueue = null;
     notificationWorker = null;
   }

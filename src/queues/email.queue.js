@@ -61,13 +61,13 @@ if (env.REDIS_URL && !isTest) {
       logger.info(`[BullMQ:EmailWorker] Job ${job.id} (${job.name}) completed successfully`);
     });
 
-    emailWorker.on("failed", (job, err) => {
-      logger.error(`[BullMQ:EmailWorker] Job ${job?.id} (${job?.name}) failed: ${err.message}`, {
+    emailWorker.on("failed", (job, error) => {
+      logger.error(`[BullMQ:EmailWorker] Job ${job?.id} (${job?.name}) failed: ${error.message}`, {
         attemptsMade: job?.attemptsMade,
       });
     });
-  } catch (err) {
-    logger.warn(`[BullMQ:EmailWorker] Failed to initialize Redis queue: ${err.message}. Using direct fallback.`);
+  } catch (error) {
+    logger.warn(`[BullMQ:EmailWorker] Failed to initialize Redis queue: ${error.message}. Using direct fallback.`);
     emailQueue = null;
     emailWorker = null;
   }

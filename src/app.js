@@ -42,7 +42,7 @@ export function createApp() {
 
   // Security headers
   app.use(helmet());
-  const allowedOrigins = env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean);
+  const allowedOrigins = env.CORS_ORIGIN.split(",").map((originItem) => originItem.trim()).filter(Boolean);
   app.use(
     cors({
       origin: allowedOrigins.includes("*") ? true : allowedOrigins,

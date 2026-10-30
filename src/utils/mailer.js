@@ -254,11 +254,11 @@ export async function sendEmail({ to, subject, html, text, replyTo }) {
       success: true,
       messageId: data?.id,
     };
-  } catch (err) {
-    logger.error(`[Resend:Exception] Failed to send email: ${err.message}`);
+  } catch (error) {
+    logger.error(`[Resend:Exception] Failed to send email: ${error.message}`);
     return {
       success: false,
-      error: err.message,
+      error: error.message,
     };
   }
 }

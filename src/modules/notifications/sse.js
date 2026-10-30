@@ -10,7 +10,7 @@ const NOTIFICATION_CHANNEL = "elpima:notifications:broadcast";
 const localEventBus = new EventEmitter();
 localEventBus.setMaxListeners(200);
 
-// Active SSE client connections: Map<string, { res: Response, user: object, timer: NodeJS.Timeout }>
+// Active SSE client connections: Map<string, { response: Response, user: object, timer: NodeJS.Timeout }>
 const clients = new Map();
 
 let redisSubscriber = null;
@@ -41,8 +41,8 @@ export function initNotificationSubscriber() {
       try {
         await redisSubscriber.subscribe(NOTIFICATION_CHANNEL);
         logger.info(`[SSE:Redis] Subscribed to ${NOTIFICATION_CHANNEL}`);
-      } catch (err) {
-        logger.error(`[SSE:Redis] Failed to subscribe: ${err.message}`);
+      } catch (error) {
+        logger.error(`[SSE:Redis] Failed to subscribe: ${error.message}`);
       }
     });
 
@@ -50,16 +50,16 @@ export function initNotificationSubscriber() {
       try {
         const payload = JSON.parse(message);
         dispatchToClients(payload);
-      } catch (err) {
-        logger.warn(`[SSE:Redis] Error parsing received broadcast: ${err.message}`);
+      } catch (error) {
+        logger.warn(`[SSE:Redis] Error parsing received broadcast: ${error.message}`);
       }
     });
 
-    redisSubscriber.on("error", (err) => {
-      logger.warn(`[SSE:Redis] Subscriber connection warning: ${err.message}`);
+    redisSubscriber.on("error", (error) => {
+      logger.warn(`[SSE:Redis] Subscriber connection warning: ${error.message}`);
     });
-  } catch (err) {
-    logger.warn(`[SSE:Redis] Subscriber initialization failed: ${err.message}`);
+  } catch (error) {
+    logger.warn(`[SSE:Redis] Subscriber initialization failed: ${error.message}`);
     redisSubscriber = null;
   }
 }
@@ -76,9 +76,9 @@ function dispatchToClients(payload) {
       if (payload.userId && payload.userId !== client.user?.id) {
         continue;
       }
-      client.res.write(`event: notification\ndata: ${data}\n\n`);
-    } catch (err) {
-      logger.warn(`[SSE] Failed writing to client ${connectionId}: ${err.message}`);
+      client.response.write(`event: notification\ndata: ${data}\n\n`);
+    } catch (error) {
+      logger.warn(`[SSE] Failed writing to client ${connectionId}: ${error.message}`);
       removeClient(connectionId);
     }
   }
@@ -102,8 +102,8 @@ export async function broadcastNotification(notification) {
     try {
       await redisPublisher.publish(NOTIFICATION_CHANNEL, serialized);
       return;
-    } catch (err) {
-      logger.warn(`[SSE:Redis] Failed to publish notification to channel: ${err.message}. Using local fallback.`);
+    } catch (error) {
+      logger.warn(`[SSE:Redis] Failed to publish notification to channel: ${error.message}. Using local fallback.`);
     }
   }
 
@@ -175,7 +175,7 @@ export function handleSSEConnection(request, response) {
   }
 
   clients.set(connectionId, {
-    res: response,
+    response,
     user,
     timer: heartbeatTimer,
   });
@@ -211,7 +211,7 @@ export async function closeSSE() {
   for (const [connectionId, client] of clients.entries()) {
     clearInterval(client.timer);
     try {
-      client.res.end();
+      client.response.end();
     } catch {}
     clients.delete(connectionId);
   }
@@ -219,8 +219,8 @@ export async function closeSSE() {
   if (redisSubscriber) {
     try {
       await redisSubscriber.quit();
-    } catch (err) {
-      logger.warn(`[SSE:Redis] Error closing subscriber: ${err.message}`);
+    } catch (error) {
+      logger.warn(`[SSE:Redis] Error closing subscriber: ${error.message}`);
     }
     redisSubscriber = null;
   }

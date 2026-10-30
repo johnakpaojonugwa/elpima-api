@@ -45,7 +45,7 @@ async function bootstrap() {
   process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
-bootstrap().catch((err) => {
-  console.error("Fatal startup error:", err);
+bootstrap().catch((error) => {
+  console.error("Fatal startup error:", error);
   process.exit(1);
 });

@@ -57,8 +57,8 @@ if (env.REDIS_URL && !isTest) {
     redisClient.on("close", () => {
       isRedisConnected = false;
     });
-  } catch (err) {
-    logger.warn(`[Redis] Initialization warning: ${err.message}. Using in-memory fallback.`);
+  } catch (error) {
+    logger.warn(`[Redis] Initialization warning: ${error.message}. Using in-memory fallback.`);
     redisClient = null;
   }
 }
@@ -92,8 +92,8 @@ export async function closeRedis() {
     try {
       await redisClient.quit();
       logger.info("[Redis] Connection closed gracefully");
-    } catch (err) {
-      logger.warn(`[Redis] Error closing connection: ${err.message}`);
+    } catch (error) {
+      logger.warn(`[Redis] Error closing connection: ${error.message}`);
     }
   }
 }
@@ -106,8 +106,8 @@ export async function cacheGet(key) {
     try {
       const data = await redisClient.get(key);
       return data ? JSON.parse(data) : null;
-    } catch (err) {
-      logger.warn(`[Cache] Redis GET error for ${key}: ${err.message}`);
+    } catch (error) {
+      logger.warn(`[Cache] Redis GET error for ${key}: ${error.message}`);
     }
   }
 
@@ -130,8 +130,8 @@ export async function cacheSet(key, value, ttlSeconds = 300) {
     try {
       await redisClient.set(key, serialized, "EX", ttlSeconds);
       return true;
-    } catch (err) {
-      logger.warn(`[Cache] Redis SET error for ${key}: ${err.message}`);
+    } catch (error) {
+      logger.warn(`[Cache] Redis SET error for ${key}: ${error.message}`);
     }
   }
 
@@ -154,8 +154,8 @@ export async function cacheDel(key) {
   if (isRedisReady()) {
     try {
       await redisClient.del(key);
-    } catch (err) {
-      logger.warn(`[Cache] Redis DEL error for ${key}: ${err.message}`);
+    } catch (error) {
+      logger.warn(`[Cache] Redis DEL error for ${key}: ${error.message}`);
     }
   }
   memoryCache.delete(key);
@@ -170,8 +170,8 @@ export async function cacheInvalidatePattern(patternPrefix) {
           redisClient.del(...keys);
         }
       });
-    } catch (err) {
-      logger.warn(`[Cache] Redis SCAN/DEL error: ${err.message}`);
+    } catch (error) {
+      logger.warn(`[Cache] Redis SCAN/DEL error: ${error.message}`);
     }
   }
 

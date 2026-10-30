@@ -36,7 +36,7 @@ function deriveDeviceCode(productName) {
     .replace(/[^a-zA-Z0-9\s]/g, "")
     .toUpperCase()
     .split(/\s+/)
-    .filter((w) => w.length > 0 && !stopWords.has(w));
+    .filter((word) => word.length > 0 && !stopWords.has(word));
 
   if (words.length >= 3) {
     return `${words[0][0]}${words[1][0]}${words[2][0]}`;

@@ -89,12 +89,12 @@ export async function createQuote(input) {
         },
       });
       break;
-    } catch (err) {
-      if (err.code === "P2002" && attempt < maxAttempts) {
+    } catch (error) {
+      if (error.code === "P2002" && attempt < maxAttempts) {
         // Unique collision on reference; retry with a fresh reference code
         continue;
       }
-      throw err;
+      throw error;
     }
   }
 

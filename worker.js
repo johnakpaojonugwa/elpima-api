@@ -29,8 +29,8 @@ async function startWorker() {
       clearTimeout(forceTimer);
       logger.info("[Worker] Background worker shut down cleanly. Exiting process.");
       process.exit(0);
-    } catch (err) {
-      logger.error(`[Worker] Error during shutdown: ${err.message}`);
+    } catch (error) {
+      logger.error(`[Worker] Error during shutdown: ${error.message}`);
       process.exit(1);
     }
   };
@@ -39,7 +39,7 @@ async function startWorker() {
   process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
-startWorker().catch((err) => {
-  logger.error("[Worker] Fatal error starting worker process:", err);
+startWorker().catch((error) => {
+  logger.error("[Worker] Fatal error starting worker process:", error);
   process.exit(1);
 });
