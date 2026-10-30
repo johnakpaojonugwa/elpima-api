@@ -6,3 +6,4 @@ export const listAuditLogsQuerySchema = z.object({
   entityType: z.string().trim().max(50).optional(),
   action: z.string().trim().max(50).optional(),
 });
+
