@@ -50,3 +50,9 @@ uploads/
 .prisma
 # Prisma generated client (produced by `postinstall` → `prisma generate`)
 generated/
+
+# AI Agents & rules
+.agents/
+agent.md
+
+
