@@ -1,5 +1,4 @@
 import "dotenv/config";
-import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 
 function buildCandidateUrls() {
@@ -82,70 +81,7 @@ async function main() {
   });
   console.log("✅ Store settings initialized");
 
-  // 2. Seed Super-Admin and Supervising Manager
   const isProduction = process.env.NODE_ENV === "production";
-
-  // In production, never fallback to predictable default passwords
-  let adminPlainPassword = process.env.INITIAL_ADMIN_PASSWORD;
-  let managerPlainPassword = process.env.INITIAL_MANAGER_PASSWORD;
-
-  if (isProduction) {
-    if (!adminPlainPassword) {
-      const crypto = await import("node:crypto");
-      adminPlainPassword = crypto.randomBytes(14).toString("base64url") + "!9A";
-      console.warn("⚠️  [Production Security] INITIAL_ADMIN_PASSWORD not set in environment.");
-      console.warn(`🔐 Generated temporary Super-Admin password: ${adminPlainPassword}`);
-    }
-    if (!managerPlainPassword) {
-      const crypto = await import("node:crypto");
-      managerPlainPassword = crypto.randomBytes(14).toString("base64url") + "!9M";
-      console.warn("⚠️  [Production Security] INITIAL_MANAGER_PASSWORD not set in environment.");
-      console.warn(`🔐 Generated temporary Supervising Manager password: ${managerPlainPassword}`);
-    }
-  } else {
-    // Development / test local defaults
-    adminPlainPassword = adminPlainPassword || "AdminPassword123!";
-    managerPlainPassword = managerPlainPassword || "ManagerPassword123!";
-  }
-
-  const adminPasswordHash = await bcrypt.hash(adminPlainPassword, 12);
-  const managerPasswordHash = await bcrypt.hash(managerPlainPassword, 12);
-
-  const adminEmail = (process.env.INITIAL_ADMIN_EMAIL || "admin@elpimasurgicals.com").trim().toLowerCase();
-  const adminFullName = process.env.INITIAL_ADMIN_NAME || "Super Admin";
-  const adminPhone = process.env.INITIAL_ADMIN_PHONE || "+2348011111111";
-
-  const managerEmail = (process.env.INITIAL_MANAGER_EMAIL || "manager@elpimasurgicals.com").trim().toLowerCase();
-  const managerFullName = process.env.INITIAL_MANAGER_NAME || "Supervising Manager";
-  const managerPhone = process.env.INITIAL_MANAGER_PHONE || "+2348022222222";
-
-  // Upsert ensures existing accounts and user-modified passwords are NEVER overwritten
-  const superAdmin = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {}, // Empty update: preserves user's current password if already exists
-    create: {
-      email: adminEmail,
-      fullName: adminFullName,
-      passwordHash: adminPasswordHash,
-      role: "SUPER_ADMIN",
-      phone: adminPhone,
-      isActive: true,
-    },
-  });
-
-  const supervisingManager = await prisma.user.upsert({
-    where: { email: managerEmail },
-    update: {}, // Empty update: preserves user's current password if already exists
-    create: {
-      email: managerEmail,
-      fullName: managerFullName,
-      passwordHash: managerPasswordHash,
-      role: "SUPERVISING_MANAGER",
-      phone: managerPhone,
-      isActive: true,
-    },
-  });
-  console.log(`✅ Admin actors verified/seeded (${superAdmin.role}: ${superAdmin.email}, ${supervisingManager.role}: ${supervisingManager.email})`);
 
   // In production, guard against accidental catalog wipe unless explicitly requested
   if (isProduction && process.env.FORCE_CATALOG_RESEED !== "true") {
