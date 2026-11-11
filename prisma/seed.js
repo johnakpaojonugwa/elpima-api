@@ -111,33 +111,41 @@ async function main() {
   const adminPasswordHash = await bcrypt.hash(adminPlainPassword, 12);
   const managerPasswordHash = await bcrypt.hash(managerPlainPassword, 12);
 
+  const adminEmail = (process.env.INITIAL_ADMIN_EMAIL || "admin@elpimasurgicals.com").trim().toLowerCase();
+  const adminFullName = process.env.INITIAL_ADMIN_NAME || "Super Admin";
+  const adminPhone = process.env.INITIAL_ADMIN_PHONE || "+2348011111111";
+
+  const managerEmail = (process.env.INITIAL_MANAGER_EMAIL || "manager@elpimasurgicals.com").trim().toLowerCase();
+  const managerFullName = process.env.INITIAL_MANAGER_NAME || "Supervising Manager";
+  const managerPhone = process.env.INITIAL_MANAGER_PHONE || "+2348022222222";
+
   // Upsert ensures existing accounts and user-modified passwords are NEVER overwritten
   const superAdmin = await prisma.user.upsert({
-    where: { email: "admin@elpimasurgicals.com" },
+    where: { email: adminEmail },
     update: {}, // Empty update: preserves user's current password if already exists
     create: {
-      email: "admin@elpimasurgicals.com",
-      fullName: "Super Admin",
+      email: adminEmail,
+      fullName: adminFullName,
       passwordHash: adminPasswordHash,
       role: "SUPER_ADMIN",
-      phone: "+2348011111111",
+      phone: adminPhone,
       isActive: true,
     },
   });
 
   const supervisingManager = await prisma.user.upsert({
-    where: { email: "manager@elpimasurgicals.com" },
+    where: { email: managerEmail },
     update: {}, // Empty update: preserves user's current password if already exists
     create: {
-      email: "manager@elpimasurgicals.com",
-      fullName: "Supervising Manager",
+      email: managerEmail,
+      fullName: managerFullName,
       passwordHash: managerPasswordHash,
       role: "SUPERVISING_MANAGER",
-      phone: "+2348022222222",
+      phone: managerPhone,
       isActive: true,
     },
   });
-  console.log("✅ Admin actors verified/seeded (Super-Admin & Supervising Manager)");
+  console.log(`✅ Admin actors verified/seeded (${superAdmin.role}: ${superAdmin.email}, ${supervisingManager.role}: ${supervisingManager.email})`);
 
   // In production, guard against accidental catalog wipe unless explicitly requested
   if (isProduction && process.env.FORCE_CATALOG_RESEED !== "true") {
